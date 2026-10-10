@@ -28,7 +28,8 @@ class Comando:
 
 def _monto(texto: str) -> int:
     # Válido solo si es ^[1-9][0-9]*$: 0, -5, 1.5, abc, 007, +5, 1e3 y 20 dígitos -> E303 (182-189, 205, 206).
-    if not _RE_MONTO.fullmatch(texto) or int(texto) > MONTO_MAXIMO:
+    # Largo antes que int(): un monto de miles de dígitos haría fallar int().
+    if len(texto) > len(str(MONTO_MAXIMO)) or not _RE_MONTO.fullmatch(texto) or int(texto) > MONTO_MAXIMO:
         raise ErrorServicio("E303")
     return int(texto)
 

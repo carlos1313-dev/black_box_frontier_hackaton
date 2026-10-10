@@ -12,6 +12,7 @@ Uso típico (desde frontier-reto-2/, en la rama develop):
 """
 
 import json
+import socket
 import subprocess
 import time
 import urllib.error
@@ -51,6 +52,10 @@ def _leer_log() -> list[dict]:
     if not LOG.exists():
         return []
     return [json.loads(l) for l in LOG.read_text(encoding="utf-8").splitlines() if l.strip()]
+
+
+class ErrorRed(Exception):
+    """El request no obtuvo respuesta. Si no era idempotente, el estado del original es incierto."""
 
 
 class Respuesta:
@@ -119,6 +124,17 @@ class Harness:
                     status, hdrs, raw = r.status, r.headers, r.read()
             except urllib.error.HTTPError as e:
                 status, hdrs, raw = e.code, e.headers, e.read()
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                # Solo se reintenta lo idempotente, o un fallo antes de enviar (conexión/TLS):
+                # un /msg perdido después de enviarse pudo haber cambiado el estado.
+                motivo = getattr(e, "reason", e)
+                antes_de_enviar = isinstance(motivo, (ConnectionRefusedError, socket.gaierror)) or "handshake" in str(e)
+                idempotente = (metodo, ruta) in (("POST", "/__reset"), ("GET", "/health"))
+                if (idempotente or antes_de_enviar) and intento < 4:
+                    print(f"[harness] error de red en {metodo} {ruta} ({e}), reintento {intento + 1}")
+                    time.sleep(2 * (intento + 1))
+                    continue
+                raise ErrorRed(f"{metodo} {ruta}: {e}") from e
             hdrs = {k.lower(): v for k, v in hdrs.items()}
             if hdrs.get("x-frontier-infra") == "rate-limit":
                 print(f"[harness] rate-limit de infraestructura, reintento {intento + 1}")

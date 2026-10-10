@@ -12,6 +12,8 @@ from .state import State
 
 # Rutas conocidas: EXACTAS, sensibles a mayúsculas, sin barra final (31-39).
 RUTAS_CONOCIDAS = {("POST", "/msg"), ("POST", "/__reset"), ("GET", "/health")}
+# Cuerpo de más de 8192 bytes -> 413 E101; 8192 exactos pasan (búsqueda binaria, ids 974-975).
+LIMITE_CUERPO = 8192
 
 
 class Store:
@@ -43,7 +45,8 @@ def _error(codigo: str) -> tuple[int, dict]:
 
 def _autorizado(store: Store, authorization: str | None) -> bool:
     # Exactamente "Bearer " + token; el prefijo es sensible a mayúsculas (24-30, 56).
-    return authorization is not None and authorization == "Bearer " + store.token_valido
+    # El valor del header se recorta como en HTTP: un espacio final pasa (927), uno doble interno no (926).
+    return authorization is not None and authorization.strip() == "Bearer " + store.token_valido
 
 
 def _rechazar_constante(nombre: str):
@@ -74,8 +77,11 @@ def responder(
     cuerpo: bytes | None,
 ) -> tuple[int, dict | str]:
     store.ultimo_x_req = None
+    ruta = ruta.split("?", 1)[0]  # el query string se ignora (918, 919)
     # 1. Ruta desconocida, ANTES que la auth (36).
     if (metodo, ruta) not in RUTAS_CONOCIDAS:
+        if metodo == "HEAD":
+            return 404, ""  # HEAD no lleva cuerpo (921)
         return _error("E404")
     # 2. Auth en las 3 rutas conocidas, incluida /health (24), antes del parseo del cuerpo (55).
     if not _autorizado(store, authorization):
@@ -90,6 +96,10 @@ def responder(
 
     # POST /msg autenticado: cuenta X-Req incluso si el cuerpo es inválido (40).
     store.ultimo_x_req = store.contar_req(token)
+    # 3. Tamaño después de ruta y auth (978, 979) y antes del JSON (980). Mide el cuerpo entero (977).
+    # SUPUESTO: se mide en bytes y solo aplica a /msg.
+    if cuerpo is not None and len(cuerpo) > LIMITE_CUERPO:
+        return _error("E101")
     m, err = _parsear_m(cuerpo)
     if err is not None:
         return err.respuesta()
