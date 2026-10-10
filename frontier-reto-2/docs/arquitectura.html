@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réplica de la Caja Negra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna de lectura (~68ch) con el diagrama de carriles a ancho completo como pieza central */
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --lane:#E7EBF1; --ink:#15202E; --muted:#5A6678; --line:#C3CBD7;
+  --accent:#2347A8; --accent-soft:#DFE6F8; --warn:#9A5800; --warn-soft:#FAEBD4; --danger:#B42318;
+  --vault:#1B2738; --vault-ink:#EEF2F7;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151D; --surface:#18212C; --lane:#141C26; --ink:#E6EBF2; --muted:#98A4B5; --line:#344050;
+  --accent:#86A5F2; --accent-soft:#1E2B48; --warn:#E8A64A; --warn-soft:#3A2A12; --danger:#F07167;
+  --vault:#E6EBF2; --vault-ink:#0F151D; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F151D; --surface:#18212C; --lane:#141C26; --ink:#E6EBF2; --muted:#98A4B5; --line:#344050;
+  --accent:#86A5F2; --accent-soft:#1E2B48; --warn:#E8A64A; --warn-soft:#3A2A12; --danger:#F07167;
+  --vault:#E6EBF2; --vault-ink:#0F151D; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 64px;display:grid;gap:56px}
+.read{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:800;line-height:1.05}
+h2{font-size:1.45rem;font-weight:700}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stack{display:grid;gap:14px}
+.lede{font-size:1.12rem;color:var(--ink);max-width:62ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--f-mono);font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.facts b{color:var(--ink);font-weight:600}
+
+/* Diagrama */
+figure{margin:0;display:grid;gap:12px}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px}
+.scroll svg{display:block;width:100%;min-width:960px;height:auto}
+figcaption{font-size:.92rem;color:var(--muted);max-width:80ch}
+.lane{fill:var(--lane)}
+.bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.bx-core{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4}
+.bx-sub{fill:var(--surface);stroke:var(--accent);stroke-width:1}
+.bx-vault{fill:var(--vault)}
+.bx-dash{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4}
+.bx-log{fill:var(--surface);stroke:var(--ink);stroke-width:1.8}
+.t{fill:var(--ink);font-family:var(--f-display);font-weight:700;font-size:14px}
+.tv{fill:var(--vault-ink);font-family:var(--f-display);font-weight:800;font-size:15px}
+.sv{fill:var(--vault-ink);font-family:var(--f-mono);font-size:11px;opacity:.85}
+.s{fill:var(--muted);font-family:var(--f-body);font-size:11.5px}
+.sm{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+.tm{fill:var(--ink);font-family:var(--f-mono);font-weight:600;font-size:13.5px}
+.q{fill:var(--warn);font-weight:600}
+.ln{fill:var(--ink);font-family:var(--f-display);font-weight:700;font-size:13px}
+.ls{fill:var(--muted);font-family:var(--f-body);font-size:11px}
+.lbl{fill:var(--muted);font-family:var(--f-mono);font-size:10.5px}
+.lbl-acc{fill:var(--accent);font-family:var(--f-mono);font-size:10.5px;font-weight:500}
+.lbl-no{fill:var(--danger);font-family:var(--f-mono);font-size:10.5px;font-weight:600}
+.ar{fill:none;stroke:var(--ink);stroke-width:1.4}
+.ar-acc{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:6 4}
+.ar-no{fill:none;stroke:var(--danger);stroke-width:1.6;stroke-dasharray:6 4}
+.mk{fill:var(--ink)} .mk-acc{fill:var(--accent)} .mk-no{fill:var(--danger)}
+.xno{fill:var(--surface);stroke:var(--danger);stroke-width:1.8}
+
+/* Embudo de validación */
+.pipe{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;counter-reset:p}
+.pipe li{counter-increment:p;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:7px 11px;font-size:.88rem}
+.pipe li::before{content:counter(p);font-family:var(--f-mono);font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pipe li.unk{border-style:dashed;border-color:var(--warn);background:var(--warn-soft)}
+.code{font-family:var(--f-mono);font-size:.76rem;font-weight:600;color:var(--accent)}
+.unk .code{color:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--muted)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;border:1px solid var(--line);background:var(--surface);vertical-align:-1px;margin-right:6px}
+.sw.unk{border:1px dashed var(--warn);background:var(--warn-soft)}
+
+/* Dos columnas que apilan */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:28px}
+.cols > *{min-width:0}
+.formula{background:var(--vault);color:var(--vault-ink);border-radius:6px;padding:18px 20px;font-family:var(--f-mono);font-size:.86rem;line-height:1.7;overflow-x:auto;white-space:pre}
+.ok{display:inline-block;font-family:var(--f-mono);font-size:.75rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 7px}
+ul.plain{margin:0;padding-left:1.1em;display:grid;gap:6px}
+
+/* Tablas */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.win{color:var(--accent);font-weight:600}
+td.lose{color:var(--danger)}
+
+/* Línea de tiempo */
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.tl li{position:relative;display:grid;grid-template-columns:118px 1fr;gap:14px;padding:10px 0 10px 20px}
+.tl li::before{content:"";position:absolute;left:-7px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--muted)}
+.tl li.key::before{background:var(--accent);border-color:var(--accent)}
+.tl time{font-family:var(--f-mono);font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--muted);padding-top:1px}
+.tl li.key time{color:var(--accent);font-weight:600}
+.tl p{font-size:.93rem;color:var(--muted)}
+.tl strong{color:var(--ink);font-weight:600;display:block}
+@media (max-width:520px){.tl li{grid-template-columns:1fr;gap:2px}}
+.rule{border-left:3px solid var(--accent);padding:4px 0 4px 14px;font-size:.95rem}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="stack">
+  <span class="eyebrow">Hackathon Frontier · Reto 2 · Arquitectura propuesta</span>
+  <h1>Réplica de la Caja Negra</h1>
+  <p class="lede">Ingeniería inversa guiada por evidencia. Cada request al original queda registrado, y cada comportamiento del clon se comprueba contra ese registro antes de desplegarse.</p>
+  <div class="facts">
+    <span>Entrega <b>20:00</b></span>
+    <span>Evaluación <b>100 tests</b> (40 de 1 request · 45 de 2–5 · 15 de 6–12)</span>
+    <span>Cupo <b>8 000 req/día · 10 req/s</b></span>
+    <span>Equipo <b>1 persona · 1 token</b></span>
+  </div>
+</header>
+
+<figure>
+  <div class="scroll">
+  <svg viewBox="0 0 1200 780" role="img" aria-label="Arquitectura en cuatro carriles: descubrimiento contra el original a través de un harness que registra cada request; verificación que reproduce el log contra el núcleo; un núcleo puro compartido; y producción en Render, que nunca llama al original.">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+      <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-acc" d="M0 0 L10 5 L0 10 z"/></marker>
+      <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-no" d="M0 0 L10 5 L0 10 z"/></marker>
+    </defs>
+
+    <!-- carriles -->
+    <rect class="lane" x="10" y="10" width="1180" height="250" rx="6"/>
+    <rect class="lane" x="10" y="275" width="1180" height="125" rx="6"/>
+    <rect class="lane" x="10" y="415" width="1180" height="160" rx="6"/>
+    <rect class="lane" x="10" y="590" width="1180" height="175" rx="6"/>
+    <text class="ln" x="30" y="40">Descubrimiento</text><text class="ls" x="30" y="58">contra el original</text>
+    <text class="ln" x="30" y="305">Verificación</text><text class="ls" x="30" y="323">clon vs. evidencia</text>
+    <text class="ln" x="30" y="445">Núcleo</text><text class="ls" x="30" y="463">un módulo, dos usos</text>
+    <text class="ln" x="30" y="620">Producción</text><text class="ls" x="30" y="638">lo que se evalúa</text>
+
+    <!-- Carril 1 -->
+    <rect class="bx" x="190" y="40" width="170" height="70" rx="4"/>
+    <text class="t" x="275" y="68" text-anchor="middle">Backlog de hipótesis</text>
+    <text class="sm" x="275" y="88" text-anchor="middle">hipotesis.yaml</text>
+
+    <rect class="bx" x="420" y="30" width="270" height="100" rx="4"/>
+    <text class="t" x="555" y="56" text-anchor="middle">Harness de sondeo</text>
+    <text class="s" x="555" y="76" text-anchor="middle">calcula o corrompe el control</text>
+    <text class="s" x="555" y="93" text-anchor="middle">reset + seq · máx. 8 req/s</text>
+    <text class="s" x="555" y="110" text-anchor="middle">lleva la cuenta del cupo diario</text>
+
+    <rect class="bx-vault" x="810" y="30" width="270" height="100" rx="4"/>
+    <text class="tv" x="945" y="60" text-anchor="middle">Caja negra</text>
+    <text class="sv" x="945" y="80" text-anchor="middle">servicio original (Railway)</text>
+    <text class="sv" x="945" y="98" text-anchor="middle">Bearer cn-p-… · estado por token</text>
+
+    <rect class="bx" x="190" y="165" width="170" height="70" rx="4"/>
+    <text class="t" x="275" y="193" text-anchor="middle">Canario</text>
+    <text class="s" x="275" y="212" text-anchor="middle">suite fija cada 45 min</text>
+
+    <rect class="bx-log" x="420" y="165" width="270" height="70" rx="4"/>
+    <text class="tm" x="555" y="193" text-anchor="middle">experimentos.jsonl</text>
+    <text class="s" x="555" y="212" text-anchor="middle">solo se añaden líneas · fuente de verdad</text>
+
+    <rect class="bx" x="810" y="165" width="270" height="70" rx="4"/>
+    <text class="t" x="945" y="193" text-anchor="middle">Bitácora de cambios</text>
+    <text class="s" x="945" y="212" text-anchor="middle">qué cambió y desde qué hora</text>
+
+    <path class="ar" d="M360 75 H416" marker-end="url(#a)"/><text class="lbl" x="390" y="66" text-anchor="middle">prueba</text>
+    <path class="ar" d="M690 62 H806" marker-end="url(#a)"/><text class="lbl" x="748" y="54" text-anchor="middle">POST /msg</text>
+    <path class="ar" d="M810 100 H694" marker-end="url(#a)"/><text class="lbl" x="750" y="118" text-anchor="middle">status·body·X-Req</text>
+    <path class="ar" d="M555 130 V161" marker-end="url(#a)"/><text class="lbl" x="563" y="150">1 línea por request</text>
+    <path class="ar" d="M690 200 H806" marker-end="url(#a)"/><text class="lbl" x="748" y="192" text-anchor="middle">si el canario difiere</text>
+    <path class="ar" d="M360 200 H390"/>
+    <path class="ar" d="M360 340 H390 V115 H416" marker-end="url(#a)"/>
+
+    <!-- Carril 2 -->
+    <rect class="bx" x="190" y="300" width="170" height="80" rx="4"/>
+    <text class="t" x="275" y="328" text-anchor="middle">Fuzzer diferencial</text>
+    <text class="s" x="275" y="347" text-anchor="middle">misma secuencia al</text>
+    <text class="s" x="275" y="363" text-anchor="middle">original y al clon</text>
+
+    <rect class="bx" x="420" y="300" width="270" height="80" rx="4"/>
+    <text class="t" x="555" y="328" text-anchor="middle">Reproductor</text>
+    <text class="s" x="555" y="347" text-anchor="middle">cada línea del log → core → diff</text>
+    <text class="s" x="555" y="363" text-anchor="middle">% de conformidad = gate de deploy</text>
+
+    <rect class="bx" x="750" y="300" width="160" height="80" rx="4"/>
+    <text class="t" x="830" y="328" text-anchor="middle">Validador de spec</text>
+    <text class="sm" x="830" y="347" text-anchor="middle">behaviors.yaml</text>
+    <text class="s" x="830" y="363" text-anchor="middle">solo cita ids reales</text>
+
+    <rect class="bx-log" x="940" y="300" width="140" height="80" rx="4"/>
+    <text class="tm" x="1010" y="328" text-anchor="middle">SPEC.md</text>
+    <text class="s" x="1010" y="347" text-anchor="middle">7 secciones</text>
+    <text class="s" x="1010" y="363" text-anchor="middle">evidencia · confianza</text>
+
+    <path class="ar" d="M690 215 H720 V340 H746" marker-end="url(#a)"/><text class="lbl" x="726" y="292">ids</text>
+    <path class="ar" d="M910 340 H936" marker-end="url(#a)"/>
+    <path class="ar" d="M1010 235 V296" marker-end="url(#a)"/><text class="lbl" x="1018" y="270">sección 6</text>
+    <path class="ar-acc" d="M190 360 H172 V85 H186" marker-end="url(#aa)"/>
+    <text class="lbl-acc" x="164" y="222" text-anchor="middle" transform="rotate(-90 164 222)">divergencia → hipótesis nueva</text>
+
+    <!-- Carril 3 -->
+    <rect class="bx-core" x="190" y="430" width="890" height="130" rx="6"/>
+    <text x="210" y="454"><tspan class="tm">core/</tspan><tspan class="s" dx="10">función pura: (estado, request) → (status, body)</tspan></text>
+    <rect class="bx-sub" x="210" y="470" width="200" height="72" rx="4"/>
+    <text class="t" x="310" y="499" text-anchor="middle">Parser + integridad</text>
+    <text class="s" x="310" y="519" text-anchor="middle">split por ; · control MOD 97</text>
+    <rect class="bx-sub" x="440" y="470" width="250" height="72" rx="4"/>
+    <text class="t" x="565" y="494" text-anchor="middle">Comandos</text>
+    <text class="sm" x="565" y="513" text-anchor="middle">PING · ALTA · CONSULTA · DEPOSITO</text>
+    <text class="sm" x="565" y="530" text-anchor="middle">TRANSFER · ANULA · <tspan class="q">¿otros?</tspan></text>
+    <rect class="bx-sub" x="720" y="470" width="170" height="72" rx="4"/>
+    <text class="t" x="805" y="499" text-anchor="middle">Estado por token</text>
+    <text class="s" x="805" y="519" text-anchor="middle">cuentas · ops · límites</text>
+    <rect class="bx-sub" x="910" y="470" width="150" height="72" rx="4"/>
+    <text class="t" x="985" y="499" text-anchor="middle">Errores</text>
+    <text class="s" x="985" y="519" text-anchor="middle">status + texto exacto</text>
+    <path class="ar" d="M410 506 H436" marker-end="url(#a)"/>
+    <path class="ar" d="M690 506 H716" marker-end="url(#a)"/>
+    <path class="ar" d="M275 380 V426" marker-end="url(#a)"/><text class="lbl" x="283" y="410">mismo input</text>
+    <path class="ar" d="M555 380 V426" marker-end="url(#a)"/><text class="lbl" x="563" y="410">replay</text>
+
+    <!-- Carril 4 -->
+    <rect class="bx" x="190" y="640" width="210" height="80" rx="4"/>
+    <text class="t" x="295" y="666" text-anchor="middle">Evaluador</text>
+    <text class="s" x="295" y="685" text-anchor="middle">100 tests · reset antes de cada uno</text>
+    <text class="sm" x="295" y="703" text-anchor="middle">Bearer ftr_…</text>
+
+    <rect class="bx-dash" x="460" y="605" width="620" height="145" rx="6"/>
+    <text class="lbl" x="1064" y="626" text-anchor="end">Render · 1 instancia · 1 worker uvicorn</text>
+    <rect class="bx" x="480" y="640" width="580" height="92" rx="4"/>
+    <text class="t" x="500" y="664">Adaptador HTTP</text>
+    <text class="sm" x="500" y="686">GET  /health  → 200 cuando está listo</text>
+    <text class="sm" x="500" y="703">POST /__reset → estado inicial</text>
+    <text class="sm" x="500" y="720">POST /msg     → core</text>
+    <text class="s" x="790" y="686">solo acepta Bearer ftr_…</text>
+    <text class="s" x="790" y="703">otro token: igual que el original</text>
+    <text class="s" x="790" y="720">rutas inexistentes: copia exacta</text>
+
+    <path class="ar" d="M400 680 H476" marker-end="url(#a)"/><text class="lbl" x="438" y="672" text-anchor="middle">HTTPS</text>
+    <path class="ar" d="M680 640 V564" marker-end="url(#a)"/><text class="lbl" x="688" y="598">llama al core</text>
+
+    <!-- Prohibido -->
+    <path class="ar-no" d="M1080 690 H1150 V80 H1086" marker-end="url(#an)"/>
+    <circle class="xno" cx="1150" cy="300" r="11"/>
+    <path class="ar-no" style="stroke-dasharray:none" d="M1144 294 L1156 306 M1156 294 L1144 306"/>
+    <text class="lbl-no" x="1172" y="470" text-anchor="middle" transform="rotate(-90 1172 470)">el clon nunca llama al original</text>
+  </svg>
+  </div>
+  <figcaption>Todo request al original pasa por el harness, también los del canario y el fuzzer, para que <code>experimentos.jsonl</code> quede completo. El mismo módulo <code>core/</code> se ejecuta en verificación y en producción, así que lo que pasa el replay local es exactamente lo que se despliega. La línea roja marca la regla que deja el set en 0 si se rompe.</figcaption>
+</figure>
+
+<section class="stack">
+  <h2>Orden de validación del núcleo</h2>
+  <p class="read">Así evalúa el núcleo cada mensaje: el primer paso que falla define la respuesta. Los pasos punteados son hipótesis; los ejemplos aún no fijan su posición. Determinar ese orden es el primer bloque de experimentos, porque 40 de los 100 tests son de un solo request y dependen de él.</p>
+  <ol class="pipe">
+    <li class="unk">Auth Bearer <span class="code">?</span></li>
+    <li class="unk">Ruta y método <span class="code">404?</span></li>
+    <li class="unk">Cuerpo JSON con <code>m</code> <span class="code">?</span></li>
+    <li>Formato del control <span class="code">E201</span></li>
+    <li class="unk">Valor del control <span class="code">E202</span></li>
+    <li class="unk">Comando <span class="code">E301</span></li>
+    <li class="unk">Aridad <span class="code">E302</span></li>
+    <li class="unk">Argumentos <span class="code">?</span></li>
+    <li>Existencia <span class="code">E401</span></li>
+    <li>Negocio <span class="code">E506 · E507</span></li>
+    <li>Efecto y respuesta <span class="code">200 · 201</span></li>
+  </ol>
+  <div class="legend"><span><span class="sw"></span>visto en los ejemplos</span><span><span class="sw unk"></span>posición por confirmar</span></div>
+</section>
+
+<section class="cols">
+  <div class="stack">
+    <h2>Ya descubierto</h2>
+    <p>El último campo de cada mensaje es un dígito de control MOD 97, de la familia del IBAN. La fórmula reproduce los 20 ejemplos y fue la única que lo logró entre unas 40 000 variantes probadas offline. <span class="ok">20 / 20</span></p>
+    <div class="formula">texto   = MAYÚSCULAS(mensaje sin el control)
+          solo letras y dígitos (se descartan ; y -)
+N       = letras A=1 … Z=26, dígitos igual, + "00"
+control = (98 − N mod 97) mod 97
+
+PING  →  16 9 14 7 · 00  →  16914700 mod 97 = 34
+      →  98 − 34 = 64      ✓  "PING;64"</div>
+  </div>
+  <div class="stack">
+    <h3>Rarezas que el clon debe copiar tal cual</h3>
+    <ul class="plain">
+      <li><code>"status":"recieved"</code>, con el error ortográfico.</li>
+      <li><code>cuentaId</code> en ALTA, pero <code>cuenta_id</code> en CONSULTA.</li>
+      <li><code>"comando desconocido "</code> lleva un espacio al final.</li>
+      <li>Repetir ANULA devuelve <b>200</b> con <code>ok:false</code>, no un error.</li>
+      <li>El comando no distingue mayúsculas: <code>CONSULTa</code> funciona.</li>
+    </ul>
+    <h3>Primeras preguntas abiertas</h3>
+    <ul class="plain">
+      <li>¿El límite de TRANSFER es por operación o acumulado? 100 000 pasa y 120 000 no.</li>
+      <li>¿Qué es <code>X-Req</code> y se reinicia con <code>/__reset</code>?</li>
+      <li>¿Qué devuelven las rutas inexistentes, carácter por carácter?</li>
+    </ul>
+  </div>
+</section>
+
+<section class="cols">
+  <div class="stack">
+    <h2>Stack: Python en Render</h2>
+    <p><b>Python 3.12 + Starlette/FastAPI en modo crudo.</b> Un solo lenguaje para el harness, el fuzzer, el reproductor y el servidor, que comparten el mismo <code>core/</code>. Sus enteros de precisión arbitraria calculan el MOD 97 sin trucos. El modo crudo (<code>Request</code> directo y ruta comodín) evita los 422 automáticos de FastAPI, que no coinciden con los del original.</p>
+    <p><b>Sin LLM dentro del clon.</b> Agregaría latencia y respuestas que no se repiten; el problema es determinista.</p>
+  </div>
+  <div class="stack">
+    <h3>Por qué Render y no Vercel</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Requisito del reto</th><th>Render</th><th>Vercel</th></tr></thead>
+      <tbody>
+        <tr><td>Estado en memoria entre requests de una secuencia</td><td class="win">Proceso persistente</td><td class="lose">Serverless: se pierde</td></tr>
+        <tr><td>"El set le habla a un solo proceso"</td><td class="win">1 instancia fija</td><td class="lose">Escala solo</td></tr>
+        <tr><td>5 s por paso</td><td class="win">Plan Starter, sin dormirse</td><td class="lose">Arranques en frío</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section class="cols">
+  <div class="stack">
+    <h2>Modelos y agentes</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Trabajo</th><th>Modelo</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td>Hipótesis, ambigüedades, redacción y auditoría de la spec</td><td><b>Opus</b></td><td>Una afirmación falsa resta puntos</td></tr>
+        <tr><td>Harness, núcleo, servidor, fuzzer, deploy</td><td><b>Sonnet</b></td><td>Código bien especificado</td></tr>
+        <tr><td>Barrer diccionario de comandos, formatear logs, resumir diffs</td><td><b>Haiku</b></td><td>Volumen alto, riesgo bajo</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="stack">
+    <h3>Regla de paralelismo</h3>
+    <p class="rule">Un token, un solo agente contra el original. Dos agentes con el mismo token se borran el estado con cada <code>/__reset</code> y contaminan el log.</p>
+    <p>Los agentes en paralelo se usan para trabajo offline: uno implementa el núcleo, otro prepara el deploy y el validador de la spec, mientras el dueño del token explora.</p>
+    <h3>Cupo diario (8 000)</h3>
+    <ul class="plain">
+      <li>Exploración por hipótesis: ~3 000</li>
+      <li>Fuzzing diferencial: ~2 000</li>
+      <li>Canario: ~300</li>
+      <li>Reserva para cambios de la tarde: ~2 700</li>
+    </ul>
+  </div>
+</section>
+
+<section class="stack">
+  <h2>Plan hasta las 20:00</h2>
+  <ol class="tl">
+    <li class="key"><time>11:55</time><div><strong>Presentación de la arquitectura</strong><p>Este documento.</p></div></li>
+    <li><time>12:00–13:00</time><div><strong>Harness, núcleo base y reproductor</strong><p>Los 20 ejemplos pasan en local antes de seguir.</p></div></li>
+    <li class="key"><time>13:00–13:30</time><div><strong>Primer deploy en Render</strong><p>Validar el entrypoint temprano: <code>/evento/resultados</code> da una medida real desde el primer día.</p></div></li>
+    <li><time>13:30–16:00</time><div><strong>Exploración por secciones</strong><p>Entrada y rutas, integridad y orden de errores, comandos y argumentos, memoria y límites. El canario corre desde aquí.</p></div></li>
+    <li><time>16:00–18:00</time><div><strong>Fuzzing diferencial</strong><p>Cada divergencia se convierte en hipótesis, experimento y corrección.</p></div></li>
+    <li><time>18:00–19:30</time><div><strong>Spec final y revisión de cambios del día</strong><p>Validador en verde: toda afirmación cita un id real del log.</p></div></li>
+    <li class="key"><time>19:30–20:00</time><div><strong>Congelar y entregar</strong><p>Último deploy, último canario, entrega del entrypoint, spec y log.</p></div></li>
+  </ol>
+</section>
+
+</div>
+</body>
+</html>

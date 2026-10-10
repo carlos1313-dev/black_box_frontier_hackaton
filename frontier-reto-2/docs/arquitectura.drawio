@@ -1,0 +1,159 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Arquitectura" id="arq">
+    <mxGraphModel dx="730" dy="403" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" background="#F2F4F7" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c2" parent="1" style="rounded=1;arcSize=2;fillColor=#E7EBF1;strokeColor=none;align=left;verticalAlign=top;spacingLeft=16;spacingTop=10;html=1;whiteSpace=wrap;fontFamily=Archivo;fontSize=13;fontColor=#15202E;" value="&lt;b&gt;Descubrimiento&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot; color=&quot;#5A6678&quot;&gt;contra el original&lt;/font&gt;" vertex="1">
+          <mxGeometry height="250" width="1180" x="10" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" parent="1" style="rounded=1;arcSize=2;fillColor=#E7EBF1;strokeColor=none;align=left;verticalAlign=top;spacingLeft=16;spacingTop=10;html=1;whiteSpace=wrap;fontFamily=Archivo;fontSize=13;fontColor=#15202E;" value="&lt;b&gt;Verificación&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot; color=&quot;#5A6678&quot;&gt;clon vs. evidencia&lt;/font&gt;" vertex="1">
+          <mxGeometry height="125" width="1180" x="10" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" parent="1" style="rounded=1;arcSize=2;fillColor=#E7EBF1;strokeColor=none;align=left;verticalAlign=top;spacingLeft=16;spacingTop=10;html=1;whiteSpace=wrap;fontFamily=Archivo;fontSize=13;fontColor=#15202E;" value="&lt;b&gt;Núcleo&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot; color=&quot;#5A6678&quot;&gt;un módulo, dos usos&lt;/font&gt;" vertex="1">
+          <mxGeometry height="160" width="1180" x="10" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" parent="1" style="rounded=1;arcSize=2;fillColor=#E7EBF1;strokeColor=none;align=left;verticalAlign=top;spacingLeft=16;spacingTop=10;html=1;whiteSpace=wrap;fontFamily=Archivo;fontSize=13;fontColor=#15202E;" value="&lt;b&gt;Producción&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot; color=&quot;#5A6678&quot;&gt;lo que se evalúa&lt;/font&gt;" vertex="1">
+          <mxGeometry height="210" width="1180" x="10" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Backlog de hipótesis&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;hipotesis.yaml&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="170" x="190" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Harness de sondeo&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;calcula o corrompe el control&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;reset + seq · máx. 8 req/s&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;lleva la cuenta del cupo diario&lt;/font&gt;" vertex="1">
+          <mxGeometry height="100" width="270" x="420" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" parent="1" style="rounded=1;arcSize=6;fillColor=#1B2738;strokeColor=none;html=1;whiteSpace=wrap;fontColor=#EEF2F7;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b style=&quot;font-size:14px&quot;&gt;Caja negra&lt;/b&gt;&lt;br&gt;servicio original (Railway)&lt;br&gt;Bearer cn-p-… · estado por token" vertex="1">
+          <mxGeometry height="100" width="270" x="810" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Canario&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;suite fija cada 45 min&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="170" x="190" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#15202E;strokeWidth=2;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;&lt;font face=&quot;IBM Plex Mono&quot;&gt;experimentos.jsonl&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;solo se añaden líneas - fuente de verdad&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="270" x="420" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Almacenamiento de cambios&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;qué cambió y desde qué hora&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="270" x="810" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Fuzzer diferencial&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;misma secuencia al&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;original y al clon&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="170" x="190" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Reproductor&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;cada línea del log → core → diff&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;% de conformidad = gate de deploy&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="270" x="420" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Validador de spec&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;behaviors.yaml&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;solo cita ids reales&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="160" x="750" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#15202E;strokeWidth=2;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;&lt;font face=&quot;IBM Plex Mono&quot;&gt;SPEC.md&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;7 secciones&lt;br&gt;evidencia · confianza&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="140" x="940" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" parent="1" style="rounded=1;arcSize=4;fillColor=#DFE6F8;strokeColor=#2347A8;strokeWidth=1.5;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacingLeft=12;spacingTop=4;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;&lt;font face=&quot;IBM Plex Mono&quot;&gt;core/&lt;/font&gt;&lt;/b&gt;  &lt;font color=&quot;#5A6678&quot;&gt;función pura: (estado, request) → (status, body)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130" width="890" x="190" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#2347A8;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Parser + integridad&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;split por ; · control MOD 97&lt;/font&gt;" vertex="1">
+          <mxGeometry height="72" width="200" x="210" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#2347A8;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Comandos&lt;/b&gt;&lt;br&gt;&lt;font face=&quot;IBM Plex Mono&quot; color=&quot;#5A6678&quot;&gt;PING · ALTA · CONSULTA · DEPOSITO&lt;br&gt;TRANSFER · ANULA · &lt;font color=&quot;#9A5800&quot;&gt;¿otros?&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="72" width="250" x="440" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#2347A8;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Estado por token&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;cuentas · ops · límites&lt;/font&gt;" vertex="1">
+          <mxGeometry height="72" width="170" x="720" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#2347A8;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Errores&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;status + texto exacto&lt;/font&gt;" vertex="1">
+          <mxGeometry height="72" width="150" x="910" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Evaluador&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;100 tests · reset antes de cada uno&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;Bearer ftr_…&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="210" x="180" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" parent="1" style="rounded=1;arcSize=3;fillColor=none;strokeColor=#5A6678;dashed=1;html=1;whiteSpace=wrap;align=right;verticalAlign=top;spacingRight=12;spacingTop=4;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;" value="Render · 1 instancia · 1 worker uvicorn" vertex="1">
+          <mxGeometry height="145" width="620" x="460" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" parent="1" style="rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#C3CBD7;html=1;whiteSpace=wrap;fontColor=#15202E;fontFamily=IBM Plex Sans;fontSize=11;" value="&lt;b&gt;Adaptador HTTP&lt;/b&gt;&lt;br&gt;&lt;font face=&quot;IBM Plex Mono&quot; color=&quot;#5A6678&quot;&gt;GET /health → 200 · POST /__reset → estado inicial · POST /msg → core&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#5A6678&quot;&gt;solo acepta Bearer ftr_… · otro token: igual que el original · rutas inexistentes: copia exacta&lt;/font&gt;" vertex="1">
+          <mxGeometry height="92" width="580" x="480" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" edge="1" parent="1" source="c6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c7" value="prueba">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" edge="1" parent="1" source="c7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=1;exitY=0.32;entryX=0;entryY=0.32;" target="c8" value="POST /msg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" edge="1" parent="1" source="c8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=0;exitY=0.7;entryX=1;entryY=0.7;" target="c7" value="status · body · X-Req">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" edge="1" parent="1" source="c7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c10" value="1 línea por request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" edge="1" parent="1" source="c10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="c11" value="si el canario difiere">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" edge="1" parent="1" source="c9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=1;exitY=0.5;entryX=0;entryY=0.85;" target="c7" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="200" />
+              <mxPoint x="390" y="115" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c30" edge="1" parent="1" source="c12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=1;exitY=0.5;entryX=0;entryY=0.85;" target="c7" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="340" />
+              <mxPoint x="390" y="115" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c31" edge="1" parent="1" source="c10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c13" value="replay">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" edge="1" parent="1" source="c10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" target="c14" value="ids">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="214" />
+              <mxPoint x="720" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c33" edge="1" parent="1" source="c14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c34" edge="1" parent="1" source="c11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=0.74;exitY=1;entryX=0.5;entryY=0;" target="c15" value="sección 6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c35" edge="1" parent="1" source="c13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=0.5;exitY=1;entryX=0.413;entryY=0;" target="c16" value="replay">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c36" edge="1" parent="1" source="c12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=0.5;exitY=1;entryX=0.096;entryY=0;" target="c16" value="mismo input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c37" edge="1" parent="1" source="c12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;dashed=1;strokeColor=#2347A8;fontColor=#2347A8;exitX=0;exitY=0.75;entryX=0;entryY=0.65;" target="c6" value="divergencia → hipótesis nueva">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="360" />
+              <mxPoint x="100" y="86" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c38" edge="1" parent="1" source="c17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c18" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c39" edge="1" parent="1" source="c18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c40" edge="1" parent="1" source="c21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;" target="c23" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c41" edge="1" parent="1" source="c23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;exitX=0.345;exitY=0;entryX=0.551;entryY=1;" target="c16" value="llama al core">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c42" edge="1" parent="1" source="c22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontFamily=IBM Plex Mono;fontSize=10;fontColor=#5A6678;labelBackgroundColor=#E7EBF1;strokeColor=#15202E;dashed=1;strokeColor=#B42318;fontColor=#B42318;endArrow=cross;exitX=1;exitY=0.58;entryX=1;entryY=0.5;" target="c8" value="PROHIBIDO: el clon nunca va a llamar al original">
+          <mxGeometry relative="1" x="-0.068" y="-40" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1150" y="690" />
+              <mxPoint x="1150" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
