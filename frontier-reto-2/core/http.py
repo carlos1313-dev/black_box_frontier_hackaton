@@ -19,19 +19,20 @@ LIMITE_CUERPO = 8192
 class Store:
     """Estados por token. Solo `token_valido` pasa la autenticación."""
 
-    def __init__(self, token_valido: str):
+    def __init__(self, token_valido: str, version: int = 2):
         self.token_valido = token_valido
+        self.version = version
         self.estados: dict[str, State] = {}
         self.contador_req: dict[str, int] = {}
         # Valor de X-Req de la última respuesta, o None si no lleva header.
         self.ultimo_x_req: int | None = None
 
     def estado(self, token: str) -> State:
-        return self.estados.setdefault(token, State())
+        return self.estados.setdefault(token, State(self.version))
 
     def reiniciar(self, token: str) -> None:
         # /__reset reinicia el estado pero NO el contador X-Req (ids 40, 58).
-        self.estados[token] = State()
+        self.estados[token] = State(self.version)
 
     def contar_req(self, token: str) -> int:
         n = self.contador_req.get(token, 0) + 1

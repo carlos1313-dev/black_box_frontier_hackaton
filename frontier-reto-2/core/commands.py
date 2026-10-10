@@ -8,9 +8,9 @@ from . import parser
 from .errors import ErrorServicio
 from .state import Operacion, State
 
-# Límite SOLO por operación: monto > 100000 -> E506 (177); el acumulado no cuenta (176).
-# DEPOSITO no tiene límite (174).
-LIMITE_TRANSFER = 100000
+# Límite SOLO por operación; el acumulado no cuenta (176). DEPOSITO no tiene límite (174).
+# v1: monto > 100000 -> E506 (177). v2 (incidente): monto > 50000 -> E506 (1463, 1464).
+LIMITE_TRANSFER = {1: 100000, 2: 50000}
 # Monto máximo 9999999999; 10000000000 -> E303 (búsqueda binaria, ids 298, 302).
 MONTO_MAXIMO = 9999999999
 
@@ -53,7 +53,15 @@ def _alta(state, args):
 
 def _consulta(state, args):
     cuenta = _cuenta(state, args[0])
-    return 200, {"cuenta_id": args[0], "saldo": cuenta.saldo}
+    return 200, {"cuenta_id": args[0], "saldo": _formato_saldo(state, cuenta.saldo)}
+
+
+def _formato_saldo(state, saldo: int):
+    # v1: entero (6). v2: texto en unidades con 2 decimales, saldo/100 (1473, 1475, 1477, 1484).
+    if state.version == 1:
+        return saldo
+    signo = "-" if saldo < 0 else ""
+    return "%s%d.%02d" % (signo, abs(saldo) // 100, abs(saldo) % 100)
 
 
 def _deposito(state, args):
@@ -74,7 +82,7 @@ def _transfer(state, args):
         raise ErrorServicio("E304")  # (200)
     origen = _cuenta(state, args[0])  # (201)
     destino = _cuenta(state, args[1])  # (202)
-    if monto > LIMITE_TRANSFER:
+    if monto > LIMITE_TRANSFER[state.version]:
         raise ErrorServicio("E506")
     if origen.saldo < monto:
         raise ErrorServicio("E507")

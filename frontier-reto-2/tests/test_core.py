@@ -60,7 +60,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(handle(s, firmar("DEPOSITO;AC-0099;abc"))[1]["error"], "E303")
 
     def test_transfer_reglas(self):
-        s = State()
+        s = State(version=1)
         handle(s, firmar("ALTA;A"))
         handle(s, firmar("ALTA;B"))
         handle(s, firmar("DEPOSITO;AC-0001;500000"))
@@ -71,7 +71,7 @@ class TestCore(unittest.TestCase):
             self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0002;100000"))[0], 200)
 
     def test_anula_saldo_negativo(self):
-        s = State()
+        s = State(version=1)
         for m in ("ALTA;A", "ALTA;B", "DEPOSITO;AC-0001;1000", "TRANSFER;AC-0001;AC-0002;1000"):
             handle(s, firmar(m))
         handle(s, firmar("TRANSFER;AC-0002;AC-0001;400"))
@@ -79,12 +79,24 @@ class TestCore(unittest.TestCase):
         self.assertEqual(handle(s, firmar("CONSULTA;AC-0002"))[1]["saldo"], -400)
         self.assertEqual(handle(s, firmar("ANULA;OP-0099"))[1]["error"], "E402")
 
+    def test_v2_limite_y_formato_de_saldo(self):
+        s = State()  # v2 por defecto (incidente de las 16:00)
+        handle(s, firmar("ALTA;A")), handle(s, firmar("ALTA;B"))
+        handle(s, firmar("DEPOSITO;AC-0001;200000"))
+        self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0002;50001"))[1]["error"], "E506")  # 1463
+        self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0002;50000"))[0], 200)  # 1464
+        self.assertEqual(handle(s, firmar("CONSULTA;AC-0001"))[1]["saldo"], "1500.00")
+        handle(s, firmar("DEPOSITO;AC-0002;5"))
+        self.assertEqual(handle(s, firmar("CONSULTA;AC-0002"))[1]["saldo"], "500.05")
+        handle(s, firmar("ANULA;OP-0001"))
+        self.assertEqual(handle(s, firmar("CONSULTA;AC-0001"))[1]["saldo"], "-500.00")  # 1484
+
     def test_control_antes_que_comando(self):
         # SUPUESTO de orden: E202 antes que E301.
         self.assertEqual(handle(State(), "XX;1")[1]["error"], "E202")
 
     def test_deposito_y_anula(self):
-        s = State()
+        s = State(version=1)
         handle(s, firmar("ALTA;A"))
         self.assertEqual(handle(s, firmar("DEPOSITO;AC-0001;10"))[1]["operacionId"], "OP-0001")
         self.assertEqual(handle(s, firmar("CONSULTA;AC-0001"))[1]["saldo"], 10)
