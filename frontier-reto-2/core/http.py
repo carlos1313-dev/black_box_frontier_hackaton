@@ -46,13 +46,18 @@ def _autorizado(store: Store, authorization: str | None) -> bool:
     return authorization is not None and authorization == "Bearer " + store.token_valido
 
 
+def _rechazar_constante(nombre: str):
+    raise ValueError(f"constante no JSON: {nombre}")
+
+
 def _parsear_m(cuerpo: bytes | None):
     """Devuelve (m, None) o (None, ErrorServicio)."""
     # Cuerpo ausente, vacío o no parseable como JSON -> E100 (40-43); el Content-Type da igual (53, 54).
     if not cuerpo:
         return None, ErrorServicio("E100")
     try:
-        datos = json.loads(cuerpo.decode("utf-8"))
+        # JSON estricto: NaN/Infinity -> E100 (248); un BOM inicial también falla (251).
+        datos = json.loads(cuerpo.decode("utf-8"), parse_constant=_rechazar_constante)
     except (ValueError, UnicodeDecodeError):  # SUPUESTO: bytes no UTF-8 -> E100
         return None, ErrorServicio("E100")
     # No objeto, sin clave "m" (case-sensitive, 52) o m no string -> E102 (44-50). Extras se ignoran (51).
