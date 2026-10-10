@@ -11,8 +11,8 @@ from .state import Operacion, State
 # Límite SOLO por operación: monto > 100000 -> E506 (177); el acumulado no cuenta (176).
 # DEPOSITO no tiene límite (174).
 LIMITE_TRANSFER = 100000
-# SUPUESTO: monto máximo 9007199254740991 (2^53 - 1; el original parece Node); por encima -> E303.
-MONTO_MAXIMO = 9007199254740991
+# Monto máximo 9999999999; 10000000000 -> E303 (búsqueda binaria, ids 298, 302).
+MONTO_MAXIMO = 9999999999
 
 OK_RECIBIDO = "recieved"  # sic, error ortográfico del original
 
