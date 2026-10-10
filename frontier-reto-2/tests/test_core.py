@@ -129,3 +129,17 @@ class TestHttp(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestChecksumLargo(unittest.TestCase):
+    def test_mensaje_muy_largo_no_falla(self):
+        from core.checksum import control
+        # Antes: ValueError por el límite de 4300 dígitos de int(); el servidor habría caído.
+        self.assertIn(control("ALTA;" + "Z" * 100000), range(2, 99))
+
+    def test_monto_de_miles_de_digitos_es_e303(self):
+        from core import State, handle
+        from core.checksum import firmar
+        st = State()
+        handle(st, firmar("ALTA;Ana"))
+        self.assertEqual(handle(st, firmar("DEPOSITO;AC-0001;" + "9" * 5000))[1]["error"], "E303")
