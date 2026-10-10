@@ -26,6 +26,8 @@ class State:
     operaciones: dict[str, Operacion] = field(default_factory=dict)
     siguiente_cuenta: int = 1
     siguiente_operacion: int = 1
+    # HALT;1 detiene el servicio: todo /msg da 503 E599 hasta /__reset (3281-3308).
+    detenido: bool = False
 
     def nueva_cuenta(self, nombre: str) -> str:
         cid = "AC-%04d" % self.siguiente_cuenta

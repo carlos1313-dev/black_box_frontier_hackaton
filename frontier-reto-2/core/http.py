@@ -97,6 +97,9 @@ def responder(
 
     # POST /msg autenticado: cuenta X-Req incluso si el cuerpo es inválido (40).
     store.ultimo_x_req = store.contar_req(token)
+    # Detenido por HALT;1: E599 antes de toda validación del cuerpo, incluso el tamaño (3296-3306).
+    if store.estado(token).detenido:
+        return _error("E599")
     # 3. Tamaño después de ruta y auth (978, 979) y antes del JSON (980). Mide el cuerpo entero (977).
     # SUPUESTO: se mide en bytes y solo aplica a /msg.
     if cuerpo is not None and len(cuerpo) > LIMITE_CUERPO:
