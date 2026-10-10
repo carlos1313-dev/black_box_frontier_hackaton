@@ -12,9 +12,11 @@ def control(cuerpo: str) -> int:
         for c in cuerpo.upper()
         if c.isascii() and c.isalnum()  # se descartan ; - y espacios
     )
-    if not digitos:
-        return 98
-    return 98 - int(digitos + "00") % 97
+    # MOD 97 incremental: int() de un string de >4300 dígitos falla en Python.
+    resto = 0
+    for d in digitos + "00":
+        resto = (resto * 10 + int(d)) % 97
+    return 98 - resto
 
 
 def firmar(cuerpo: str) -> str:
