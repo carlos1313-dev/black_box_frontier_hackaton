@@ -76,6 +76,11 @@ class Harness:
         env = _cargar_env()
         self.url = env["BLACKBOX_URL"].rstrip("/")
         self.token = env["BLACKBOX_TOKEN"]
+        # Valores que nunca deben quedar en el log (el repo es público)
+        self._secretos = {env["BLACKBOX_TOKEN"]: "<token-propio>"}
+        if env.get("TEAM_TOKEN"):
+            self.token_equipo = env["TEAM_TOKEN"]
+            self._secretos[self.token_equipo] = "<token-equipo>"
         lineas = _leer_log()
         self._siguiente_id = max((l["id"] for l in lineas), default=0) + 1
         self._n_seq = len({l["seq"] for l in lineas})
@@ -171,7 +176,9 @@ class Harness:
         if datos is not None and content_type:
             headers["Content-Type"] = content_type
         status, hdrs, texto = self._enviar(metodo, ruta, datos, headers)
-        auth_log = auth if auth in ("propio", "ninguno") else auth.replace(self.token, "<token-propio>")
+        auth_log = auth
+        for secreto, alias in self._secretos.items():
+            auth_log = auth_log.replace(secreto, alias)
         return self._registrar(seq, hipotesis, metodo, ruta, auth_log, enviado, status, hdrs, texto)
 
     # -- secuencias -------------------------------------------------------
