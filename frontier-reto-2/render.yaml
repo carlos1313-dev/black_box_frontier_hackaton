@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: caja-negra-replica
+    runtime: python
+    plan: starter
+    rootDir: frontier-reto-2
+    buildCommand: echo sin dependencias
+    # Un solo proceso: el estado vive en memoria.
+    startCommand: python3 -m server.app
+    # Sin healthCheckPath: GET /health exige Authorization igual que el original.
+    envVars:
+      - key: TEAM_TOKEN
+        sync: false # se define en el panel, nunca en el repo

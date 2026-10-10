@@ -1,0 +1,23 @@
+# Secretos: el repo es público. Tokens solo en .env
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Estado local del harness (cupo diario)
+.state/
+
+# Worktrees de agentes de Claude Code
+.claude/
