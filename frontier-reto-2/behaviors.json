@@ -2,7 +2,7 @@
  "secciones": {
   "1": {
    "titulo": "Entrada",
-   "intro": "El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <token>`. Los cuerpos de respuesta son siempre JSON (`Content-Type: application/json; charset=utf-8`)."
+   "intro": "El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <token>`. Los cuerpos de respuesta son siempre JSON (`Content-Type: application/json; charset=utf-8`). El cuerpo de `POST /msg` admite hasta 8192 bytes."
   },
   "2": {
    "titulo": "Integridad",
@@ -18,7 +18,7 @@
   },
   "5": {
    "titulo": "Errores",
-   "intro": "Todos los errores tienen cuerpo `{\"error\": <código>, \"mensaje\": <texto>}`; E301 puede añadir `sugerencia`.\n\n| Código | Status | Mensaje exacto |\n|---|---|---|\n| E001 | 401 | `no autorizado` |\n| E404 | 404 | `ruta desconocida` |\n| E100 | 400 | `json inválido` |\n| E102 | 400 | `falta m` |\n| E103 | 400 | `falta control` |\n| E104 | 400 | `segmento vacío` |\n| E201 | 400 | `control mal formado` |\n| E202 | 400 | `control inválido` |\n| E301 | 400 | `comando desconocido ` (con espacio final) |\n| E302 | 400 | `aridad inválida` |\n| E303 | 400 | `monto inválido` |\n| E304 | 400 | `origen y destino iguales` |\n| E401 | 404 | `cuenta inexistente` |\n| E402 | 404 | `operación inexistente` |\n| E506 | 422 | `límite excedido` |\n| E507 | 422 | `saldo insuficiente` |\n| E520 | 409 | `operación destructiva: detiene el servicio; reenvía con confirmación` |\n\n**Orden de evaluación** (gana el primero que falla): ruta (E404) → autenticación (E001) → JSON (E100) → `m` (E102) → `;` presente (E103) → segmentos no vacíos (E104) → formato del control (E201) → valor del control (E202) → comando (E301) → aridad (E302) → monto (E303) → origen ≠ destino (E304) → existencia (E401/E402) → límite (E506) → saldo (E507). PING omite E201 y E202."
+   "intro": "Todos los errores tienen cuerpo `{\"error\": <código>, \"mensaje\": <texto>}`; E301 puede añadir `sugerencia`.\n\n| Código | Status | Mensaje exacto |\n|---|---|---|\n| E001 | 401 | `no autorizado` |\n| E404 | 404 | `ruta desconocida` |\n| E100 | 400 | `json inválido` |\n| E101 | 413 | `cuerpo demasiado grande` |\n| E102 | 400 | `falta m` |\n| E103 | 400 | `falta control` |\n| E104 | 400 | `segmento vacío` |\n| E201 | 400 | `control mal formado` |\n| E202 | 400 | `control inválido` |\n| E301 | 400 | `comando desconocido ` (con espacio final) |\n| E302 | 400 | `aridad inválida` |\n| E303 | 400 | `monto inválido` |\n| E304 | 400 | `origen y destino iguales` |\n| E401 | 404 | `cuenta inexistente` |\n| E402 | 404 | `operación inexistente` |\n| E506 | 422 | `límite excedido` |\n| E507 | 422 | `saldo insuficiente` |\n| E520 | 409 | `operación destructiva: detiene el servicio; reenvía con confirmación` |\n\n**Orden de evaluación** (gana el primero que falla): ruta (E404) → autenticación (E001) → tamaño del cuerpo (E101) → JSON (E100) → `m` (E102) → `;` presente (E103) → segmentos no vacíos (E104) → formato del control (E201) → valor del control (E202) → comando (E301) → aridad (E302) → monto (E303) → origen ≠ destino (E304) → existencia (E401/E402) → límite (E506) → saldo (E507). PING omite E201 y E202."
   },
   "6": {
    "titulo": "Cambios durante el día",
@@ -195,7 +195,7 @@
   {
    "id": "ENT-16",
    "seccion": 1,
-   "comportamiento": "No se observó límite de longitud de `m`: un nombre de 3000 caracteres se acepta.",
+   "comportamiento": "Un `m` de 3000 caracteres se acepta; el único límite de tamaño observado es el del cuerpo (ENT-20).",
    "evidencia": [
     83
    ],
@@ -204,7 +204,66 @@
   {
    "id": "ENT-17",
    "seccion": 1,
-   "comportamiento": "El reemplazo ignora el query string y responde E100 a cuerpos que no son UTF-8 válido.",
+   "comportamiento": "El query string se ignora: `POST /msg?x=1` y `GET /health?x=1` responden como sin él.",
+   "evidencia": [
+    918,
+    919
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-18",
+   "seccion": 1,
+   "comportamiento": "`POST /health`, `HEAD /health`, `OPTIONS /msg`, `DELETE /msg`, `/health/` y `//msg` → E404. HEAD responde 404 sin cuerpo.",
+   "evidencia": [
+    920,
+    921,
+    922,
+    923,
+    924,
+    925
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-19",
+   "seccion": 1,
+   "comportamiento": "El valor de `Authorization` se recorta: un espacio final se acepta, pero `Bearer` seguido de dos espacios → E001.",
+   "evidencia": [
+    926,
+    927
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-20",
+   "seccion": 1,
+   "comportamiento": "Límite de tamaño: un cuerpo de más de 8192 bytes → 413 `{\"error\":\"E101\",\"mensaje\":\"cuerpo demasiado grande\"}`; 8192 exactos se aceptan. Mide el cuerpo entero (un campo extra de relleno también cuenta), no solo `m`.",
+   "evidencia": [
+    931,
+    932,
+    933,
+    974,
+    975,
+    977
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-21",
+   "seccion": 1,
+   "comportamiento": "E101 se evalúa después de la ruta y la autenticación y antes del parseo JSON: cuerpo grande sin token → E001; en ruta inexistente → E404; no JSON → E101.",
+   "evidencia": [
+    978,
+    979,
+    980
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-22",
+   "seccion": 1,
+   "comportamiento": "El límite se mide en bytes UTF-8 y solo se aplica a `POST /msg`; un cuerpo que no es UTF-8 válido → E100.",
    "evidencia": [],
    "confianza": "supuesto"
   },
@@ -361,6 +420,16 @@
    "confianza": "probable"
   },
   {
+   "id": "INT-12",
+   "seccion": 2,
+   "comportamiento": "Espacio o salto de línea después del control → E201: el control no se recorta.",
+   "evidencia": [
+    928,
+    929
+   ],
+   "confianza": "confirmado"
+  },
+  {
    "id": "CMD-01",
    "seccion": 3,
    "comportamiento": "El nombre del comando no distingue mayúsculas (`CONSULTa`, `ping`).",
@@ -456,7 +525,13 @@
     142,
     143,
     165,
-    166
+    166,
+    951,
+    952,
+    953,
+    954,
+    955,
+    956
    ],
    "confianza": "confirmado"
   },
@@ -485,13 +560,15 @@
   {
    "id": "CMD-06",
    "seccion": 3,
-   "comportamiento": "ALTA acepta nombres con espacios, guiones, caracteres no ASCII, muy largos y repetidos (cada ALTA crea una cuenta nueva).",
+   "comportamiento": "ALTA acepta nombres con espacios, guiones, caracteres no ASCII, numéricos, de un solo espacio, muy largos y repetidos (cada ALTA crea una cuenta nueva).",
    "evidencia": [
     76,
     77,
     78,
     83,
-    223
+    223,
+    959,
+    960
    ],
    "confianza": "confirmado"
   },
@@ -663,6 +740,16 @@
    "confianza": "supuesto"
   },
   {
+   "id": "CMD-21",
+   "seccion": 3,
+   "comportamiento": "Los argumentos no se recortan: ` AC-0001` → E401 y ` 100` → E303.",
+   "evidencia": [
+    957,
+    958
+   ],
+   "confianza": "probable"
+  },
+  {
    "id": "MEM-01",
    "seccion": 4,
    "comportamiento": "Tras `/__reset` los contadores vuelven al inicio: la primera ALTA de cada secuencia es AC-0001 y la primera operación OP-0001.",
@@ -771,6 +858,18 @@
     25,
     34,
     40
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "MEM-08",
+   "seccion": 4,
+   "comportamiento": "No hay detección de duplicados ni bloqueo por fallos: el mismo DEPOSITO o TRANSFER repetido crea otra operación, y tras 5 E202 seguidos la cuenta sigue operable.",
+   "evidencia": [
+    938,
+    940,
+    947,
+    948
    ],
    "confianza": "confirmado"
   },

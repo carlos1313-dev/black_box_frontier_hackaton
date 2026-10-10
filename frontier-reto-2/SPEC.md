@@ -2,7 +2,7 @@
 
 ## 1. Entrada
 
-El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <token>`. Los cuerpos de respuesta son siempre JSON (`Content-Type: application/json; charset=utf-8`).
+El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <token>`. Los cuerpos de respuesta son siempre JSON (`Content-Type: application/json; charset=utf-8`). El cuerpo de `POST /msg` admite hasta 8192 bytes.
 
 | ID | Comportamiento | Evidencia | Confianza |
 | --- | --- | --- | --- |
@@ -21,8 +21,13 @@ El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <toke
 | ENT-13 | Se aceptan espacios al final del JSON; con la clave `m` duplicada gana la última. | 249, 250 | probable |
 | ENT-14 | Cuerpo JSON que no es objeto, sin clave `m`, o con `m` no string (número, null, array) → 400 `{"error":"E102","mensaje":"falta m"}`. La clave distingue mayúsculas (`M` → E102). | 44–46, 48–50, 52 | confirmado |
 | ENT-15 | Los campos extra del cuerpo se ignoran. | 51 | probable |
-| ENT-16 | No se observó límite de longitud de `m`: un nombre de 3000 caracteres se acepta. | 83 | probable |
-| ENT-17 | El reemplazo ignora el query string y responde E100 a cuerpos que no son UTF-8 válido. | — | supuesto |
+| ENT-16 | Un `m` de 3000 caracteres se acepta; el único límite de tamaño observado es el del cuerpo (ENT-20). | 83 | probable |
+| ENT-17 | El query string se ignora: `POST /msg?x=1` y `GET /health?x=1` responden como sin él. | 918, 919 | confirmado |
+| ENT-18 | `POST /health`, `HEAD /health`, `OPTIONS /msg`, `DELETE /msg`, `/health/` y `//msg` → E404. HEAD responde 404 sin cuerpo. | 920–925 | confirmado |
+| ENT-19 | El valor de `Authorization` se recorta: un espacio final se acepta, pero `Bearer` seguido de dos espacios → E001. | 926, 927 | probable |
+| ENT-20 | Límite de tamaño: un cuerpo de más de 8192 bytes → 413 `{"error":"E101","mensaje":"cuerpo demasiado grande"}`; 8192 exactos se aceptan. Mide el cuerpo entero (un campo extra de relleno también cuenta), no solo `m`. | 931–933, 974, 975, 977 | confirmado |
+| ENT-21 | E101 se evalúa después de la ruta y la autenticación y antes del parseo JSON: cuerpo grande sin token → E001; en ruta inexistente → E404; no JSON → E101. | 978–980 | probable |
+| ENT-22 | El límite se mide en bytes UTF-8 y solo se aplica a `POST /msg`; un cuerpo que no es UTF-8 válido → E100. | — | supuesto |
 
 ## 2. Integridad
 
@@ -50,6 +55,7 @@ Ejemplo: `PING` → `16 9 14 7` + `00` = `16914700`; `16914700 mod 97 = 34`; `98
 | INT-09 | El control se valida antes que el comando y la aridad: comando desconocido o aridad inválida con control malo → E201/E202. | 68–71 | confirmado |
 | INT-10 | PING no valida el control: acepta cualquier segmento no vacío (`XX`, `064`, `+64`, ` 64`, `64.0`, `-33`, `161`). Sí aplica E103, E104 y la aridad. | 59, 61–67, 72 | confirmado |
 | INT-11 | HALT sí valida el control como el resto de comandos. | 231 | probable |
+| INT-12 | Espacio o salto de línea después del control → E201: el control no se recorta. | 928, 929 | confirmado |
 
 ## 3. Comandos
 
@@ -59,10 +65,10 @@ El nombre del comando no distingue mayúsculas. Los ids de cuenta (`AC-%04d`) y 
 | --- | --- | --- | --- |
 | CMD-01 | El nombre del comando no distingue mayúsculas (`CONSULTa`, `ping`). | 12, 73 | confirmado |
 | CMD-02 | Comandos existentes: PING, ALTA, CONSULTA, DEPOSITO, TRANSFER, ANULA y el oculto HALT. Un barrido de ~60 verbos bancarios no encontró otros. | 85, 87–100, 102–134, 136–150, 152, 165 | probable |
-| CMD-03 | Aridad (argumentos sin contar el control): PING 0, ALTA 1, CONSULTA 1, DEPOSITO 2, TRANSFER 3, ANULA 1, HALT 1. Con menos o más argumentos → 400 `{"error":"E302","mensaje":"aridad inválida"}`. HALT con 2 o más argumentos no se probó (riesgo de confirmarlo); el reemplazo responde E302. | 21, 72, 139–143, 165, 166 | confirmado |
+| CMD-03 | Aridad (argumentos sin contar el control): PING 0, ALTA 1, CONSULTA 1, DEPOSITO 2, TRANSFER 3, ANULA 1, HALT 1. Con menos o más argumentos → 400 `{"error":"E302","mensaje":"aridad inválida"}`. HALT con 2 o más argumentos no se probó (riesgo de confirmarlo); el reemplazo responde E302. | 21, 72, 139–143, 165, 166, 951–956 | confirmado |
 | CMD-04 | `PING` → 200 `{"pong":true}`. | 2, 51, 73 | confirmado |
 | CMD-05 | `ALTA;nombre` → 201 `{"cuentaId":"AC-0001"}`; ids secuenciales `AC-%04d` desde AC-0001 y saldo inicial 0. | 4–6 | confirmado |
-| CMD-06 | ALTA acepta nombres con espacios, guiones, caracteres no ASCII, muy largos y repetidos (cada ALTA crea una cuenta nueva). | 76–78, 83, 223 | confirmado |
+| CMD-06 | ALTA acepta nombres con espacios, guiones, caracteres no ASCII, numéricos, de un solo espacio, muy largos y repetidos (cada ALTA crea una cuenta nueva). | 76–78, 83, 223, 959, 960 | confirmado |
 | CMD-07 | `CONSULTA;cuenta` → 200 `{"cuenta_id":"AC-0001","saldo":0}` (la clave es `cuenta_id`, no `cuentaId`). | 6, 9, 12, 20 | confirmado |
 | CMD-08 | Cuenta inexistente en CONSULTA, DEPOSITO o TRANSFER → 404 `{"error":"E401","mensaje":"cuenta inexistente"}`. La comparación es exacta: `ac-0001`, `AC-1` y `OP-0001` dan E401. | 16, 190–192, 201, 202, 224 | confirmado |
 | CMD-09 | `DEPOSITO;cuenta;monto` → 200 `{"status":"recieved","operacionId":"OP-0001"}` ("recieved" con la errata) y suma el monto. No tiene el límite de TRANSFER. | 7, 19, 20, 174 | confirmado |
@@ -77,6 +83,7 @@ El nombre del comando no distingue mayúsculas. Los ids de cuenta (`AC-%04d`) y 
 | CMD-18 | ANULA de una operación inexistente o mal escrita (`OP-0099`, `AC-0001`, `op-0003`) → 404 `{"error":"E402","mensaje":"operación inexistente"}`. | 219–221 | confirmado |
 | CMD-19 | `HALT;<argumento>` → 409 `{"error":"E520","mensaje":"operación destructiva: detiene el servicio; reenvía con confirmación"}` y no cambia nada: el servicio, el estado y las escrituras siguen funcionando. | 166–169 | probable |
 | CMD-20 | La forma de confirmar HALT no se probó a propósito (podría detener un servicio compartido). El reemplazo responde E520 a cualquier argumento. | — | supuesto |
+| CMD-21 | Los argumentos no se recortan: ` AC-0001` → E401 y ` 100` → E303. | 957, 958 | probable |
 
 ## 4. Memoria entre requests
 
@@ -91,6 +98,7 @@ Cada token tiene su propio estado. `POST /__reset` lo devuelve al inicial.
 | MEM-05 | El servicio recuerda qué operaciones están anuladas (segunda ANULA → `ok:false`) y conserva saldos negativos. | 15, 216 | probable |
 | MEM-06 | El límite de TRANSFER no guarda memoria: dos TRANSFER de 100000 seguidas pasan. | 175, 176 | probable |
 | MEM-07 | Header `X-Req` (los headers no se comparan): contador por token que sube en 1 por cada `POST /msg` autenticado, incluso con error de cuerpo, y que `/__reset` no reinicia. No aparece en 401, 404, `/health` ni `/__reset`. | 1–21, 23, 25, 34, 40 | confirmado |
+| MEM-08 | No hay detección de duplicados ni bloqueo por fallos: el mismo DEPOSITO o TRANSFER repetido crea otra operación, y tras 5 E202 seguidos la cuenta sigue operable. | 938, 940, 947, 948 | confirmado |
 
 ## 5. Errores
 
@@ -101,6 +109,7 @@ Todos los errores tienen cuerpo `{"error": <código>, "mensaje": <texto>}`; E301
 | E001 | 401 | `no autorizado` |
 | E404 | 404 | `ruta desconocida` |
 | E100 | 400 | `json inválido` |
+| E101 | 413 | `cuerpo demasiado grande` |
 | E102 | 400 | `falta m` |
 | E103 | 400 | `falta control` |
 | E104 | 400 | `segmento vacío` |
@@ -116,7 +125,7 @@ Todos los errores tienen cuerpo `{"error": <código>, "mensaje": <texto>}`; E301
 | E507 | 422 | `saldo insuficiente` |
 | E520 | 409 | `operación destructiva: detiene el servicio; reenvía con confirmación` |
 
-**Orden de evaluación** (gana el primero que falla): ruta (E404) → autenticación (E001) → JSON (E100) → `m` (E102) → `;` presente (E103) → segmentos no vacíos (E104) → formato del control (E201) → valor del control (E202) → comando (E301) → aridad (E302) → monto (E303) → origen ≠ destino (E304) → existencia (E401/E402) → límite (E506) → saldo (E507). PING omite E201 y E202.
+**Orden de evaluación** (gana el primero que falla): ruta (E404) → autenticación (E001) → tamaño del cuerpo (E101) → JSON (E100) → `m` (E102) → `;` presente (E103) → segmentos no vacíos (E104) → formato del control (E201) → valor del control (E202) → comando (E301) → aridad (E302) → monto (E303) → origen ≠ destino (E304) → existencia (E401/E402) → límite (E506) → saldo (E507). PING omite E201 y E202.
 
 | ID | Comportamiento | Evidencia | Confianza |
 | --- | --- | --- | --- |
