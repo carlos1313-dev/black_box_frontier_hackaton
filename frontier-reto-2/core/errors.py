@@ -12,13 +12,13 @@ CATALOGO: dict[str, tuple[int, str]] = {
     "E202": (400, "control inválido"),
     "E301": (400, "comando desconocido "),  # OJO: espacio final, es parte del original
     "E302": (400, "aridad inválida"),
-    # SUPUESTO: código y texto de argumento inválido (monto no numérico, <= 0, etc.).
-    # No observado en el original; E303 es un invento en la familia E3xx.
-    "E303": (400, "argumento inválido"),
+    "E303": (400, "monto inválido"),  # (182-189, 193, 205, 206)
+    "E304": (400, "origen y destino iguales"),  # (200)
     "E401": (404, "cuenta inexistente"),
-    # SUPUESTO: código y texto de operación inexistente (ANULA de un OP desconocido).
-    "E402": (404, "operación inexistente"),
+    "E402": (404, "operación inexistente"),  # (219-221)
     "E506": (422, "límite excedido"),
+    # HALT con argumento: no cambia nada (166-170).
+    "E520": (409, "operación destructiva: detiene el servicio; reenvía con confirmación"),
     "E507": (422, "saldo insuficiente"),
 }
 

@@ -36,13 +36,30 @@ def _control_numerico(ctrl: str) -> bool:
     return ctrl.isascii() and ctrl.isdigit()
 
 
-def sugerencia(comando_crudo: str, comandos: dict) -> str | None:
-    """Sugerencia de E301. Aislada para refinarla (id 74 con sugerencia; id 13 sin ella).
+def _levenshtein(a: str, b: str) -> int:
+    previa = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        actual = [i]
+        for j, cb in enumerate(b, 1):
+            actual.append(min(previa[j] + 1, actual[j - 1] + 1, previa[j - 1] + (ca != cb)))
+        previa = actual
+    return previa[-1]
 
-    SUPUESTO: hay sugerencia si `cmd.strip().upper()` es un comando conocido.
+
+def sugerencia(comando_crudo: str, comandos: dict) -> str | None:
+    """Sugerencia de E301: comando a distancia de Levenshtein <= 2 de `cmd.upper()`.
+
+    Sin strip (" PING" está a distancia 1, id 74). Gana la menor distancia; en empate, el primero
+    en el orden de `comandos` (ALTA gana a HALT en 157 y 158). Distancia 3 -> sin sugerencia (160).
+    Se devuelve en mayúsculas (156). Verificado contra todos los E301 del log.
     """
-    candidato = comando_crudo.strip().upper()
-    return candidato if candidato in comandos else None
+    objetivo = comando_crudo.upper()
+    mejor, mejor_d = None, 3
+    for nombre in comandos:
+        d = _levenshtein(objetivo, nombre)
+        if d < mejor_d:
+            mejor, mejor_d = nombre, d
+    return mejor
 
 
 def validar(msg: Mensaje, comandos: dict) -> None:

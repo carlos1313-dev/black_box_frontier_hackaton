@@ -43,6 +43,41 @@ class TestCore(unittest.TestCase):
         body = handle(State(), " PING;64")[1]
         self.assertEqual(body["sugerencia"], "PING")
         self.assertNotIn("sugerencia", handle(State(), firmar("SALDOS;AC-0001"))[1])
+        self.assertEqual(handle(State(), firmar("HALTA;x"))[1]["sugerencia"], "ALTA")  # empate (158)
+        self.assertNotIn("sugerencia", handle(State(), firmar("CONSULTAXXX;x"))[1])  # distancia 3 (160)
+
+    def test_halt(self):
+        self.assertEqual(handle(State(), firmar("HALT"))[1]["error"], "E302")
+        status, body = handle(State(), firmar("HALT;x"))
+        self.assertEqual((status, body["error"]), (409, "E520"))
+
+    def test_montos(self):
+        s = State()
+        handle(s, firmar("ALTA;A"))
+        for monto in ("0", "-5", "1.5", "abc", "007", "+5", "1e3", "9" * 20):
+            r = handle(s, firmar(f"DEPOSITO;AC-0001;{monto}"))
+            self.assertEqual(r, (400, {"error": "E303", "mensaje": "monto inválido"}), monto)
+        self.assertEqual(handle(s, firmar("DEPOSITO;AC-0099;abc"))[1]["error"], "E303")
+
+    def test_transfer_reglas(self):
+        s = State()
+        handle(s, firmar("ALTA;A"))
+        handle(s, firmar("ALTA;B"))
+        handle(s, firmar("DEPOSITO;AC-0001;500000"))
+        self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0001;1"))[1]["error"], "E304")
+        self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0009;1"))[1]["error"], "E401")
+        self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0002;100001"))[1]["error"], "E506")
+        for _ in range(2):  # el acumulado no cuenta
+            self.assertEqual(handle(s, firmar("TRANSFER;AC-0001;AC-0002;100000"))[0], 200)
+
+    def test_anula_saldo_negativo(self):
+        s = State()
+        for m in ("ALTA;A", "ALTA;B", "DEPOSITO;AC-0001;1000", "TRANSFER;AC-0001;AC-0002;1000"):
+            handle(s, firmar(m))
+        handle(s, firmar("TRANSFER;AC-0002;AC-0001;400"))
+        self.assertEqual(handle(s, firmar("ANULA;OP-0002"))[0], 200)
+        self.assertEqual(handle(s, firmar("CONSULTA;AC-0002"))[1]["saldo"], -400)
+        self.assertEqual(handle(s, firmar("ANULA;OP-0099"))[1]["error"], "E402")
 
     def test_control_antes_que_comando(self):
         # SUPUESTO de orden: E202 antes que E301.
