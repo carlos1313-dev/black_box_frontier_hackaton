@@ -5,6 +5,7 @@ CATALOGO: dict[str, tuple[int, str]] = {
     "E001": (401, "no autorizado"),  # (24-30, 56)
     "E404": (404, "ruta desconocida"),  # (31-39)
     "E100": (400, "json inválido"),  # (40-43)
+    "E101": (413, "cuerpo demasiado grande"),  # (931-933, 975)
     "E102": (400, "falta m"),  # (44-50, 52)
     "E103": (400, "falta control"),  # (47, 58)
     "E104": (400, "segmento vacío"),  # (59, 60, 75)
