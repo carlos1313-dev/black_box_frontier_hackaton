@@ -179,7 +179,8 @@ class Harness:
         auth_log = auth
         for secreto, alias in self._secretos.items():
             auth_log = auth_log.replace(secreto, alias)
-        return self._registrar(seq, hipotesis, metodo, ruta, auth_log, enviado, status, hdrs, texto)
+        extra = {"raw": True} if raw is not None else None  # cuerpo enviado como texto literal, no serializado
+        return self._registrar(seq, hipotesis, metodo, ruta, auth_log, enviado, status, hdrs, texto, extra)
 
     # -- secuencias -------------------------------------------------------
 

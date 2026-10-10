@@ -18,3 +18,6 @@ Thumbs.db
 
 # Estado local del harness (cupo diario)
 .state/
+
+# Worktrees de agentes de Claude Code
+.claude/
