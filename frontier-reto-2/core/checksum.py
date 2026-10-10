@@ -1,7 +1,9 @@
 """Dígito de control del servicio (variante ISO 7064 MOD 97-10).
 
-Derivado de pruebas/ejemplos.jsonl (20/20). Casos de borde aún por confirmar:
-resto 0 o 1, ceros a la izquierda, caracteres no ASCII.
+control = 98 - (N mod 97), SIN módulo final: el rango válido es 2..98
+(experimentos.jsonl ids 79-82: control 97 y 98 válidos, 0 y 1 inválidos).
+Verificado contra pruebas/ejemplos.jsonl (20/20). Espacios, guiones y no-ASCII
+no cuentan en el cálculo (ids 76-78).
 """
 
 
@@ -13,8 +15,8 @@ def control(cuerpo: str) -> int:
         if c.isascii() and c.isalnum()  # se descartan ; - y espacios
     )
     if not digitos:
-        return 98 % 97
-    return (98 - int(digitos + "00") % 97) % 97
+        return 98  # SUPUESTO: sin dígitos, N = 0 -> 98 (extrapolación de la fórmula, no probado)
+    return 98 - int(digitos + "00") % 97
 
 
 def firmar(cuerpo: str) -> str:
