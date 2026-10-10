@@ -38,7 +38,7 @@ def _parse_json(valor):
 
 
 def iguales(esperado, obtenido) -> bool:
-    """Regla del README: ambos JSON -> igualdad por valor; si no, texto exacto."""
+    """Regla del enunciado (docs/ENUNCIADO.md): ambos JSON -> igualdad por valor; si no, texto exacto."""
     ej, ev = _parse_json(esperado)
     oj, ov = _parse_json(obtenido)
     if ej and oj:
