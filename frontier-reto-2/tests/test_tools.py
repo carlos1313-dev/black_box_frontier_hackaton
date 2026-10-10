@@ -137,9 +137,11 @@ class TestSpecBuild(unittest.TestCase):
         titulos = [l for l in md.splitlines() if l.startswith("## ")]
         self.assertEqual([t.split(". ", 1)[1] for t in titulos], list(spec_build.SECCIONES.values()))
         self.assertEqual(md.count("| ID | Comportamiento | Evidencia | Confianza |"), 7)
-        self.assertIn("| ENT-02 |", md)
-        self.assertIn("31–39", md)
-        self.assertIn("### ALTA", md)
+        # Cada comportamiento del registro aparece como fila de su tabla
+        for b in self.datos["comportamientos"]:
+            self.assertIn(f"| {b['id']} |", md)
+        for bloque in self.datos.get("bloques", {}).get("3", []):
+            self.assertIn(f"### {bloque['titulo']}", md)
 
     def test_compactar(self):
         self.assertEqual(spec_build.compactar([24, 25]), "24, 25")
