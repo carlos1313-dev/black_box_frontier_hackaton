@@ -31,9 +31,8 @@ def separar(m: str) -> Mensaje:
 
 
 def _control_numerico(ctrl: str) -> bool:
-    # SUPUESTO: "numérico" (para comandos distintos de PING) = solo dígitos ASCII, sin signo
-    # ni espacios; "064" cuenta como 64. Solo se probó con "XX" (ids 69, 71).
-    return ctrl.isascii() and ctrl.isdigit()
+    # 1 o 2 dígitos ASCII; signo, espacio, decimal o 3+ dígitos -> E201 (69, 227-230).
+    return ctrl.isascii() and ctrl.isdigit() and len(ctrl) <= 2
 
 
 def _levenshtein(a: str, b: str) -> int:
@@ -82,7 +81,8 @@ def validar(msg: Mensaje, comandos: dict) -> None:
 
     def e202():
         if valida_control and (
-            not _control_numerico(msg.control) or int(msg.control) != control(msg.cuerpo)
+            # Se compara como texto: "03" no equivale a 3 (226).
+            not _control_numerico(msg.control) or msg.control != str(control(msg.cuerpo))
         ):
             raise ErrorServicio("E202")
 
