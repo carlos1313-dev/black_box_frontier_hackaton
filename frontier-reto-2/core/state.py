@@ -20,6 +20,8 @@ class Operacion:
 
 @dataclass
 class State:
+    # Versión del servicio original: 1 hasta el incidente (16:00), 2 después. Ver core/commands.py.
+    version: int = 2
     cuentas: dict[str, Cuenta] = field(default_factory=dict)
     operaciones: dict[str, Operacion] = field(default_factory=dict)
     siguiente_cuenta: int = 1

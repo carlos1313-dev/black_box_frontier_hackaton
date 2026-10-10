@@ -69,6 +69,14 @@ def leer_log(ruta) -> list[dict]:
 
 TOKEN_PROPIO = "<token-propio>"
 
+# El original pasó a v2 entre el canario de 15:54 (id 1409, v1) y el de 15:59 (id 1410, v2).
+CORTE_V2 = "2026-10-10T15:59:52"
+
+
+def version_de(e: dict) -> int:
+    """Versión del original vigente cuando se registró la línea (las más antiguas no tienen ts)."""
+    return 2 if (e.get("ts") or "") >= CORTE_V2 else 1
+
 
 def reconstruir(e: dict) -> tuple[str, str, str | None, bytes | None]:
     """Línea del log -> (metodo, ruta, authorization, cuerpo) para `responder`."""
@@ -98,7 +106,7 @@ def replay(lineas: list[dict]) -> Resultado:
         secuencias.setdefault(e.get("seq"), []).append(e)
 
     for seq, entradas in secuencias.items():
-        store = Store(TOKEN_PROPIO)  # cada seq empieza con estado nuevo
+        store = Store(TOKEN_PROPIO, version_de(entradas[0]))  # cada seq empieza con estado nuevo
         for e in entradas:
             if str(e.get("conclusion") or "").startswith("INFRA"):
                 res.ignoradas += 1
