@@ -1,0 +1,3 @@
+# Finales de línea LF en todo el repo (WSL + Windows)
+* text=auto eol=lf
+*.drawio text eol=lf
