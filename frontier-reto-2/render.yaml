@@ -3,9 +3,10 @@ services:
     name: caja-negra-replica
     runtime: python
     plan: starter
-    buildCommand: pip install -r requirements.txt
+    rootDir: frontier-reto-2
+    buildCommand: echo sin dependencias
     # Un solo proceso: el estado vive en memoria.
-    startCommand: uvicorn server.app:app --host 0.0.0.0 --port $PORT --workers 1
+    startCommand: python3 -m server.app
     # Sin healthCheckPath: GET /health exige Authorization igual que el original.
     envVars:
       - key: TEAM_TOKEN

@@ -24,8 +24,6 @@ class State:
     operaciones: dict[str, Operacion] = field(default_factory=dict)
     siguiente_cuenta: int = 1
     siguiente_operacion: int = 1
-    # Solo se usa si commands.LIMITE_MODO == "acumulado".
-    acumulado_transfer: int = 0
 
     def nueva_cuenta(self, nombre: str) -> str:
         cid = "AC-%04d" % self.siguiente_cuenta
