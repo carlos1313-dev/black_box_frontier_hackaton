@@ -26,7 +26,10 @@ def crear_servidor(token_valido: str, host: str = "0.0.0.0", port: int = 8000) -
                     cuerpo = self.rfile.read(max(0, int(largo)))
                 except ValueError:
                     cuerpo = b""
-            ruta = self.path.split("?", 1)[0]  # SUPUESTO: el query string se ignora
+            # Ruta tal como llegó: BaseHTTPRequestHandler colapsa "//msg" a "/msg" en self.path,
+            # y el original responde E404 a "//msg" (925). responder ignora el query string.
+            partes = self.requestline.split()
+            ruta = partes[1] if len(partes) >= 2 else self.path
             with lock:
                 status, contenido = responder(
                     store, self.command, ruta, self.headers.get("Authorization"), cuerpo
