@@ -1,0 +1,964 @@
+{
+ "secciones": {
+  "1": {
+   "titulo": "Entrada",
+   "intro": "El servicio expone tres rutas exactas. Todas exigen `Authorization: Bearer <token>`. Los cuerpos de respuesta son siempre JSON (`Content-Type: application/json; charset=utf-8`)."
+  },
+  "2": {
+   "titulo": "Integridad",
+   "intro": "Un mensaje es el string `m` con la forma `COMANDO;arg1;…;argN;control`. Se divide por `;`; el último segmento es el dígito de control.\n\n**Algoritmo del control** (variante de ISO 7064 MOD 97-10):\n\n1. Tomar el mensaje sin el último segmento (`;control`).\n2. Pasar a mayúsculas y quedarse solo con letras A–Z y dígitos 0–9 ASCII (se descartan `;`, `-`, espacios y caracteres no ASCII).\n3. Reemplazar cada letra por su posición (A=1 … Z=26); los dígitos quedan igual; concatenar y añadir `00`.\n4. `control = 98 − (N mod 97)`, entero en el rango 2..98.\n\nEjemplo: `PING` → `16 9 14 7` + `00` = `16914700`; `16914700 mod 97 = 34`; `98 − 34 = 64` → `PING;64`."
+  },
+  "3": {
+   "titulo": "Comandos",
+   "intro": "El nombre del comando no distingue mayúsculas. Los ids de cuenta (`AC-%04d`) y de operación (`OP-%04d`) se comparan de forma exacta. Un monto válido es un entero `^[1-9][0-9]*$` no mayor que 9999999999."
+  },
+  "4": {
+   "titulo": "Memoria entre requests",
+   "intro": "Cada token tiene su propio estado. `POST /__reset` lo devuelve al inicial."
+  },
+  "5": {
+   "titulo": "Errores",
+   "intro": "Todos los errores tienen cuerpo `{\"error\": <código>, \"mensaje\": <texto>}`; E301 puede añadir `sugerencia`.\n\n| Código | Status | Mensaje exacto |\n|---|---|---|\n| E001 | 401 | `no autorizado` |\n| E404 | 404 | `ruta desconocida` |\n| E100 | 400 | `json inválido` |\n| E102 | 400 | `falta m` |\n| E103 | 400 | `falta control` |\n| E104 | 400 | `segmento vacío` |\n| E201 | 400 | `control mal formado` |\n| E202 | 400 | `control inválido` |\n| E301 | 400 | `comando desconocido ` (con espacio final) |\n| E302 | 400 | `aridad inválida` |\n| E303 | 400 | `monto inválido` |\n| E304 | 400 | `origen y destino iguales` |\n| E401 | 404 | `cuenta inexistente` |\n| E402 | 404 | `operación inexistente` |\n| E506 | 422 | `límite excedido` |\n| E507 | 422 | `saldo insuficiente` |\n| E520 | 409 | `operación destructiva: detiene el servicio; reenvía con confirmación` |\n\n**Orden de evaluación** (gana el primero que falla): ruta (E404) → autenticación (E001) → JSON (E100) → `m` (E102) → `;` presente (E103) → segmentos no vacíos (E104) → formato del control (E201) → valor del control (E202) → comando (E301) → aridad (E302) → monto (E303) → origen ≠ destino (E304) → existencia (E401/E402) → límite (E506) → saldo (E507). PING omite E201 y E202."
+  },
+  "6": {
+   "titulo": "Cambios durante el día",
+   "intro": "El canario (`tools/canary.py`) repite una suite fija contra el original y la compara con el clon. Cada corrida queda en `canario.jsonl` y sus requests en el log."
+  },
+  "7": {
+   "titulo": "Riesgos",
+   "intro": "Comportamientos que un cliente nuevo no debería heredar, con la forma de cerrarlos."
+  }
+ },
+ "comportamientos": [
+  {
+   "id": "ENT-01",
+   "seccion": 1,
+   "comportamiento": "Rutas conocidas: `POST /msg`, `POST /__reset`, `GET /health`. Cualquier otra combinación de método y ruta responde 404 `{\"error\":\"E404\",\"mensaje\":\"ruta desconocida\"}` en JSON; no hay 405.",
+   "evidencia": [
+    31,
+    32,
+    33,
+    34,
+    35,
+    39
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-02",
+   "seccion": 1,
+   "comportamiento": "Las rutas distinguen mayúsculas y no admiten barra final: `/MSG` y `/msg/` dan E404.",
+   "evidencia": [
+    37,
+    38
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-03",
+   "seccion": 1,
+   "comportamiento": "Una ruta desconocida responde E404 aunque no haya token: la ruta se resuelve antes que la autenticación.",
+   "evidencia": [
+    36
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-04",
+   "seccion": 1,
+   "comportamiento": "Las tres rutas exigen el header `Authorization` exactamente igual a `Bearer <token>`. Sin header, con token desconocido, sin prefijo, con prefijo vacío → 401 `{\"error\":\"E001\",\"mensaje\":\"no autorizado\"}`. Incluye `GET /health` y `POST /__reset`.",
+   "evidencia": [
+    24,
+    25,
+    26,
+    27,
+    30,
+    56
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-05",
+   "seccion": 1,
+   "comportamiento": "El prefijo distingue mayúsculas: `bearer <token>` → E001.",
+   "evidencia": [
+    28
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-06",
+   "seccion": 1,
+   "comportamiento": "Solo el token propio es válido: un token válido de otro contexto (el del equipo) → E001.",
+   "evidencia": [
+    29
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-07",
+   "seccion": 1,
+   "comportamiento": "La autenticación se evalúa antes que el cuerpo: sin token y con cuerpo no JSON → E001.",
+   "evidencia": [
+    55
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-08",
+   "seccion": 1,
+   "comportamiento": "`GET /health` con token → 200 `{\"ok\":true}`.",
+   "evidencia": [
+    23,
+    170
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-09",
+   "seccion": 1,
+   "comportamiento": "`POST /__reset` con token → 200 `{\"ok\":true}` y reinicia el estado del token.",
+   "evidencia": [
+    1,
+    22,
+    57,
+    84
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-10",
+   "seccion": 1,
+   "comportamiento": "El cuerpo se interpreta como JSON sin importar el `Content-Type` (text/plain o ausente).",
+   "evidencia": [
+    53,
+    54
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-11",
+   "seccion": 1,
+   "comportamiento": "Cuerpo no parseable como JSON (texto, JSON truncado, vacío o ausente) → 400 `{\"error\":\"E100\",\"mensaje\":\"json inválido\"}`.",
+   "evidencia": [
+    40,
+    41,
+    42,
+    43
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-12",
+   "seccion": 1,
+   "comportamiento": "El parser es JSON estricto: `NaN` y un BOM UTF-8 inicial → E100.",
+   "evidencia": [
+    248,
+    251
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-13",
+   "seccion": 1,
+   "comportamiento": "Se aceptan espacios al final del JSON; con la clave `m` duplicada gana la última.",
+   "evidencia": [
+    249,
+    250
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-14",
+   "seccion": 1,
+   "comportamiento": "Cuerpo JSON que no es objeto, sin clave `m`, o con `m` no string (número, null, array) → 400 `{\"error\":\"E102\",\"mensaje\":\"falta m\"}`. La clave distingue mayúsculas (`M` → E102).",
+   "evidencia": [
+    44,
+    45,
+    46,
+    48,
+    49,
+    50,
+    52
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ENT-15",
+   "seccion": 1,
+   "comportamiento": "Los campos extra del cuerpo se ignoran.",
+   "evidencia": [
+    51
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-16",
+   "seccion": 1,
+   "comportamiento": "No se observó límite de longitud de `m`: un nombre de 3000 caracteres se acepta.",
+   "evidencia": [
+    83
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ENT-17",
+   "seccion": 1,
+   "comportamiento": "El reemplazo ignora el query string y responde E100 a cuerpos que no son UTF-8 válido.",
+   "evidencia": [],
+   "confianza": "supuesto"
+  },
+  {
+   "id": "INT-01",
+   "seccion": 2,
+   "comportamiento": "`m` sin ningún `;` (incluido el string vacío) → 400 `{\"error\":\"E103\",\"mensaje\":\"falta control\"}`.",
+   "evidencia": [
+    47,
+    58
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-02",
+   "seccion": 2,
+   "comportamiento": "Si algún segmento es vacío (`PING;`, `;64`, `PING;;64`) → 400 `{\"error\":\"E104\",\"mensaje\":\"segmento vacío\"}`.",
+   "evidencia": [
+    59,
+    60,
+    75
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-03",
+   "seccion": 2,
+   "comportamiento": "El control se calcula con el algoritmo descrito arriba; reproduce todos los mensajes aceptados del log.",
+   "evidencia": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    76,
+    77,
+    78
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-04",
+   "seccion": 2,
+   "comportamiento": "El control esperado está en 2..98, sin módulo final: resto 1 exige 97 y resto 0 exige 98; 0 y 1 son rechazados.",
+   "evidencia": [
+    79,
+    80,
+    81,
+    82
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-05",
+   "seccion": 2,
+   "comportamiento": "El cálculo ignora mayúsculas/minúsculas y todo lo que no sea letra o dígito ASCII (`;`, `-`, espacio, `í`).",
+   "evidencia": [
+    12,
+    76,
+    77,
+    78
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-06",
+   "seccion": 2,
+   "comportamiento": "El control debe ser de 1 o 2 dígitos ASCII. Letras, signo, espacio, decimal o 3+ dígitos → 400 `{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}`.",
+   "evidencia": [
+    18,
+    69,
+    71,
+    227,
+    228,
+    229,
+    230
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-07",
+   "seccion": 2,
+   "comportamiento": "El control se compara como texto: `03` no equivale a `3` → E202.",
+   "evidencia": [
+    226
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "INT-08",
+   "seccion": 2,
+   "comportamiento": "Control bien formado pero distinto del esperado → 400 `{\"error\":\"E202\",\"mensaje\":\"control inválido\"}`.",
+   "evidencia": [
+    3,
+    68,
+    70,
+    79,
+    81,
+    231
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-09",
+   "seccion": 2,
+   "comportamiento": "El control se valida antes que el comando y la aridad: comando desconocido o aridad inválida con control malo → E201/E202.",
+   "evidencia": [
+    68,
+    69,
+    70,
+    71
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-10",
+   "seccion": 2,
+   "comportamiento": "PING no valida el control: acepta cualquier segmento no vacío (`XX`, `064`, `+64`, ` 64`, `64.0`, `-33`, `161`). Sí aplica E103, E104 y la aridad.",
+   "evidencia": [
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    59,
+    72
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "INT-11",
+   "seccion": 2,
+   "comportamiento": "HALT sí valida el control como el resto de comandos.",
+   "evidencia": [
+    231
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "CMD-01",
+   "seccion": 3,
+   "comportamiento": "El nombre del comando no distingue mayúsculas (`CONSULTa`, `ping`).",
+   "evidencia": [
+    12,
+    73
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-02",
+   "seccion": 3,
+   "comportamiento": "Comandos existentes: PING, ALTA, CONSULTA, DEPOSITO, TRANSFER, ANULA y el oculto HALT. Un barrido de ~60 verbos bancarios no encontró otros.",
+   "evidencia": [
+    85,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    152,
+    165
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "CMD-03",
+   "seccion": 3,
+   "comportamiento": "Aridad (argumentos sin contar el control): PING 0, ALTA 1, CONSULTA 1, DEPOSITO 2, TRANSFER 3, ANULA 1, HALT 1. Con menos o más argumentos → 400 `{\"error\":\"E302\",\"mensaje\":\"aridad inválida\"}`. HALT con 2 o más argumentos no se probó (riesgo de confirmarlo); el reemplazo responde E302.",
+   "evidencia": [
+    21,
+    72,
+    139,
+    140,
+    141,
+    142,
+    143,
+    165,
+    166
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-04",
+   "seccion": 3,
+   "comportamiento": "`PING` → 200 `{\"pong\":true}`.",
+   "evidencia": [
+    2,
+    51,
+    73
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-05",
+   "seccion": 3,
+   "comportamiento": "`ALTA;nombre` → 201 `{\"cuentaId\":\"AC-0001\"}`; ids secuenciales `AC-%04d` desde AC-0001 y saldo inicial 0.",
+   "evidencia": [
+    4,
+    5,
+    6
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-06",
+   "seccion": 3,
+   "comportamiento": "ALTA acepta nombres con espacios, guiones, caracteres no ASCII, muy largos y repetidos (cada ALTA crea una cuenta nueva).",
+   "evidencia": [
+    76,
+    77,
+    78,
+    83,
+    223
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-07",
+   "seccion": 3,
+   "comportamiento": "`CONSULTA;cuenta` → 200 `{\"cuenta_id\":\"AC-0001\",\"saldo\":0}` (la clave es `cuenta_id`, no `cuentaId`).",
+   "evidencia": [
+    6,
+    9,
+    12,
+    20
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-08",
+   "seccion": 3,
+   "comportamiento": "Cuenta inexistente en CONSULTA, DEPOSITO o TRANSFER → 404 `{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}`. La comparación es exacta: `ac-0001`, `AC-1` y `OP-0001` dan E401.",
+   "evidencia": [
+    16,
+    190,
+    191,
+    192,
+    201,
+    202,
+    224
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-09",
+   "seccion": 3,
+   "comportamiento": "`DEPOSITO;cuenta;monto` → 200 `{\"status\":\"recieved\",\"operacionId\":\"OP-0001\"}` (\"recieved\" con la errata) y suma el monto. No tiene el límite de TRANSFER.",
+   "evidencia": [
+    7,
+    19,
+    20,
+    174
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-10",
+   "seccion": 3,
+   "comportamiento": "Monto válido solo si es `^[1-9][0-9]*$` y ≤ 9999999999. Cero, negativo, decimal, con signo, con ceros a la izquierda, notación científica, no numérico o ≥ 10000000000 → 400 `{\"error\":\"E303\",\"mensaje\":\"monto inválido\"}`. Aplica a DEPOSITO y TRANSFER.",
+   "evidencia": [
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    205,
+    206,
+    235,
+    298,
+    302
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-11",
+   "seccion": 3,
+   "comportamiento": "`TRANSFER;origen;destino;monto` → 200 `{\"status\":\"recieved\",\"operacionId\":\"OP-…\"}`; resta al origen y suma al destino.",
+   "evidencia": [
+    8,
+    9,
+    11,
+    12
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-12",
+   "seccion": 3,
+   "comportamiento": "TRANSFER con origen igual al destino → 400 `{\"error\":\"E304\",\"mensaje\":\"origen y destino iguales\"}`, aunque la cuenta no exista.",
+   "evidencia": [
+    200,
+    243
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-13",
+   "seccion": 3,
+   "comportamiento": "Límite por operación: TRANSFER con monto > 100000 → 422 `{\"error\":\"E506\",\"mensaje\":\"límite excedido\"}`; 100000 exacto pasa y el acumulado no cuenta.",
+   "evidencia": [
+    10,
+    175,
+    176,
+    177
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-14",
+   "seccion": 3,
+   "comportamiento": "TRANSFER con saldo del origen menor que el monto → 422 `{\"error\":\"E507\",\"mensaje\":\"saldo insuficiente\"}`.",
+   "evidencia": [
+    17,
+    203
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-15",
+   "seccion": 3,
+   "comportamiento": "`ANULA;OP-xxxx` → 200 `{\"ok\":true,\"anulada\":\"OP-xxxx\"}` y revierte la operación: una TRANSFER devuelve el monto al origen y lo quita al destino; un DEPOSITO resta su monto.",
+   "evidencia": [
+    14,
+    17,
+    20,
+    215,
+    217,
+    218
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-16",
+   "seccion": 3,
+   "comportamiento": "ANULA de una operación ya anulada → 200 `{\"ok\":false,\"motivo\":\"ya anulada\"}` (no es un error HTTP).",
+   "evidencia": [
+    15
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "CMD-17",
+   "seccion": 3,
+   "comportamiento": "ANULA no verifica saldos: puede dejar una cuenta en negativo.",
+   "evidencia": [
+    215,
+    216
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "CMD-18",
+   "seccion": 3,
+   "comportamiento": "ANULA de una operación inexistente o mal escrita (`OP-0099`, `AC-0001`, `op-0003`) → 404 `{\"error\":\"E402\",\"mensaje\":\"operación inexistente\"}`.",
+   "evidencia": [
+    219,
+    220,
+    221
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CMD-19",
+   "seccion": 3,
+   "comportamiento": "`HALT;<argumento>` → 409 `{\"error\":\"E520\",\"mensaje\":\"operación destructiva: detiene el servicio; reenvía con confirmación\"}` y no cambia nada: el servicio, el estado y las escrituras siguen funcionando.",
+   "evidencia": [
+    166,
+    167,
+    168,
+    169
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "CMD-20",
+   "seccion": 3,
+   "comportamiento": "La forma de confirmar HALT no se probó a propósito (podría detener un servicio compartido). El reemplazo responde E520 a cualquier argumento.",
+   "evidencia": [],
+   "confianza": "supuesto"
+  },
+  {
+   "id": "MEM-01",
+   "seccion": 4,
+   "comportamiento": "Tras `/__reset` los contadores vuelven al inicio: la primera ALTA de cada secuencia es AC-0001 y la primera operación OP-0001.",
+   "evidencia": [
+    4,
+    7,
+    76,
+    163,
+    164,
+    172,
+    174,
+    181,
+    195,
+    197,
+    199,
+    210,
+    212
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "MEM-02",
+   "seccion": 4,
+   "comportamiento": "Cuentas y operaciones tienen contadores separados; DEPOSITO y TRANSFER comparten el contador de operaciones.",
+   "evidencia": [
+    4,
+    5,
+    7,
+    8,
+    11,
+    19
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "MEM-03",
+   "seccion": 4,
+   "comportamiento": "Las operaciones fallidas no consumen id ni alteran saldos.",
+   "evidencia": [
+    3,
+    4,
+    10,
+    11,
+    194,
+    195,
+    207
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "MEM-04",
+   "seccion": 4,
+   "comportamiento": "ANULA no consume id de operación.",
+   "evidencia": [
+    222
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "MEM-05",
+   "seccion": 4,
+   "comportamiento": "El servicio recuerda qué operaciones están anuladas (segunda ANULA → `ok:false`) y conserva saldos negativos.",
+   "evidencia": [
+    15,
+    216
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "MEM-06",
+   "seccion": 4,
+   "comportamiento": "El límite de TRANSFER no guarda memoria: dos TRANSFER de 100000 seguidas pasan.",
+   "evidencia": [
+    175,
+    176
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "MEM-07",
+   "seccion": 4,
+   "comportamiento": "Header `X-Req` (los headers no se comparan): contador por token que sube en 1 por cada `POST /msg` autenticado, incluso con error de cuerpo, y que `/__reset` no reinicia. No aparece en 401, 404, `/health` ni `/__reset`.",
+   "evidencia": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    1,
+    23,
+    25,
+    34,
+    40
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ERR-01",
+   "seccion": 5,
+   "comportamiento": "E301 trae `sugerencia` cuando el comando (en mayúsculas, sin recortar espacios) está a distancia de Levenshtein ≤ 2 de un comando real; gana la menor distancia. A distancia 3 o más no hay clave `sugerencia`.",
+   "evidencia": [
+    13,
+    74,
+    100,
+    121,
+    144,
+    152,
+    153,
+    154,
+    156,
+    159,
+    160,
+    232
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ERR-02",
+   "seccion": 5,
+   "comportamiento": "Empate de distancia en la sugerencia: gana ALTA sobre HALT.",
+   "evidencia": [
+    157,
+    158
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ERR-03",
+   "seccion": 5,
+   "comportamiento": "Para empates no observados, el reemplazo desempata en el orden PING, ALTA, CONSULTA, DEPOSITO, TRANSFER, ANULA, HALT.",
+   "evidencia": [],
+   "confianza": "supuesto"
+  },
+  {
+   "id": "ERR-04",
+   "seccion": 5,
+   "comportamiento": "El mensaje de E301 lleva un espacio final: `comando desconocido `.",
+   "evidencia": [
+    13,
+    74
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ERR-05",
+   "seccion": 5,
+   "comportamiento": "El monto se valida antes que la existencia de las cuentas.",
+   "evidencia": [
+    193,
+    244
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "ERR-06",
+   "seccion": 5,
+   "comportamiento": "En TRANSFER, E303 antes que E304 y E304 antes que E401.",
+   "evidencia": [
+    242,
+    243
+   ],
+   "confianza": "probable"
+  },
+  {
+   "id": "ERR-07",
+   "seccion": 5,
+   "comportamiento": "La existencia de cuentas (E401) se evalúa antes que el límite (E506), y el límite antes que el saldo (E507).",
+   "evidencia": [
+    204,
+    245,
+    246
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "CAM-01",
+   "seccion": 6,
+   "comportamiento": "A las 12:55 la secuencia de `pruebas/ejemplos.jsonl` (grabada en la mañana) se reprodujo sin diferencias.",
+   "evidencia": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-01",
+   "seccion": 7,
+   "comportamiento": "HALT es una operación destructiva disponible para cualquier token y protegida solo por un argumento de confirmación; además la sugerencia de E301 la revela (`HELP` → `HALT`). Cerrar: sacarla del protocolo público o exigir un rol de administración con confirmación fuera de banda.",
+   "evidencia": [
+    100,
+    133,
+    166
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-02",
+   "seccion": 7,
+   "comportamiento": "El dígito de control es un checksum público, no una firma: detecta errores de tipeo pero no autentica ni impide manipular mensajes. Cerrar: firmar mensajes (HMAC por cliente) si se necesita integridad.",
+   "evidencia": [
+    80,
+    82
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-03",
+   "seccion": 7,
+   "comportamiento": "PING acepta cualquier control: la validación de integridad es inconsistente entre comandos. Cerrar: aplicar la misma validación a todos.",
+   "evidencia": [
+    61,
+    66,
+    67
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-04",
+   "seccion": 7,
+   "comportamiento": "ANULA no tiene autorización ni verificación de saldo: cualquiera puede anular cualquier operación y dejar saldos negativos. Cerrar: verificar saldo y restringir quién anula.",
+   "evidencia": [
+    215,
+    216,
+    217,
+    218
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-05",
+   "seccion": 7,
+   "comportamiento": "Ids secuenciales y predecibles (`AC-0001`, `OP-0001`) y respuestas distintas para existente/inexistente permiten enumerar cuentas y operaciones. Cerrar: ids opacos y aleatorios.",
+   "evidencia": [
+    4,
+    5,
+    16,
+    219
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-06",
+   "seccion": 7,
+   "comportamiento": "El límite es solo por operación: se evade fraccionando el monto (dos TRANSFER de 100000 seguidas). Cerrar: límite acumulado por periodo.",
+   "evidencia": [
+    175,
+    176
+   ],
+   "confianza": "confirmado"
+  },
+  {
+   "id": "RSK-07",
+   "seccion": 7,
+   "comportamiento": "Contrato inconsistente: errata `recieved`, `cuentaId` frente a `cuenta_id`, espacio final en `comando desconocido `, y ANULA repetida devuelve 200. Un cliente nuevo no debe depender de esto. Cerrar: una versión nueva del contrato que lo corrija, manteniendo la actual para clientes existentes.",
+   "evidencia": [
+    4,
+    6,
+    7,
+    13,
+    15
+   ],
+   "confianza": "confirmado"
+  }
+ ],
+ "bloques": {}
+}
