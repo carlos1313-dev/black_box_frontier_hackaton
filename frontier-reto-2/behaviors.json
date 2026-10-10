@@ -1,0 +1,38 @@
+{
+  "secciones": {
+    "1": {"titulo": "Entrada", "intro": "Rutas, métodos, autenticación y forma del cuerpo. (EJEMPLO: contenido de muestra para validar el esquema.)"},
+    "2": {"titulo": "Integridad", "intro": "Cómo valida el servicio que un mensaje `CMD;arg1;…;control` está bien formado."},
+    "3": {"titulo": "Comandos", "intro": "Un bloque por comando, con argumentos, efecto y respuesta."},
+    "4": {"titulo": "Memoria entre requests", "intro": "Qué recuerda el servicio por token y qué cambia una respuesta según los requests anteriores."},
+    "5": {"titulo": "Errores", "intro": "Cada error con su status, su cuerpo exacto y el orden de evaluación."},
+    "6": {"titulo": "Cambios durante el día", "intro": "Qué cambió, desde cuándo y cómo se detectó."},
+    "7": {"titulo": "Riesgos", "intro": "Comportamientos que un cliente nuevo no debería heredar y cómo cerrarlos."}
+  },
+  "comportamientos": [
+    {"id": "ENT-01", "seccion": 1, "comportamiento": "GET /health exige token: con Bearer válido responde 200 {\"ok\":true}; sin token, 401 E001.", "evidencia": [23, 24], "confianza": "confirmado"},
+    {"id": "ENT-02", "seccion": 1, "comportamiento": "Solo existen POST /msg, POST /__reset y GET /health, con ruta y método exactos (sensibles a mayúsculas, sin barra final); cualquier otra combinación responde 404 {\"error\":\"E404\",\"mensaje\":\"ruta desconocida\"}, evaluado antes que la autenticación.", "evidencia": [31, 32, 33, 34, 35, 36, 37, 38, 39], "confianza": "confirmado"},
+    {"id": "ENT-03", "seccion": 1, "comportamiento": "El cuerpo de POST /msg no depende del Content-Type; si no es JSON válido (o está vacío) responde 400 E100 \"json inválido\".", "evidencia": [40, 41, 42, 43, 53, 54], "confianza": "confirmado"},
+    {"id": "INT-01", "seccion": 2, "comportamiento": "Orden de validación de integridad: E103 (sin ';') → E104 (segmento vacío) → E201 (control mal formado) → E202 (control inválido) → E301 (comando desconocido) → E302 (aridad).", "evidencia": [58, 59, 68, 69, 70, 71], "confianza": "confirmado"},
+    {"id": "INT-02", "seccion": 2, "comportamiento": "El control es 98 − (N·100 mod 97), con N = dígitos del cuerpo (letras A=1…Z=26, se ignoran ';', '-' y espacios); rango 2..98, sin módulo final.", "evidencia": [79, 80, 81, 82], "confianza": "confirmado"},
+    {"id": "INT-03", "seccion": 2, "comportamiento": "PING no valida el control: cualquier último campo (incluso 'XX') responde pong.", "evidencia": [61, 62, 66], "confianza": "confirmado"},
+    {"id": "INT-04", "seccion": 2, "comportamiento": "Un cuerpo con bytes que no son UTF-8 válido responde E100 (no probado).", "evidencia": [], "confianza": "supuesto"},
+    {"id": "CMD-01", "seccion": 3, "comportamiento": "ALTA;nombre crea la cuenta AC-%04d siguiente y responde 201 {\"cuentaId\":…}; un nombre repetido crea otra cuenta.", "evidencia": [4, 5, 223], "confianza": "confirmado"},
+    {"id": "CMD-02", "seccion": 3, "comportamiento": "DEPOSITO;cuenta;monto: el monto debe cumplir ^[1-9][0-9]*$ y ser ≤ 9999999999 (si no, E303); no tiene límite por operación.", "evidencia": [174, 182, 186, 298, 302], "confianza": "confirmado"},
+    {"id": "CMD-03", "seccion": 3, "comportamiento": "TRANSFER limita el monto a 100000 por operación (no acumulado): 100000 pasa, 100001 responde 422 E506.", "evidencia": [175, 176, 177], "confianza": "confirmado"},
+    {"id": "MEM-01", "seccion": 4, "comportamiento": "Cuentas y operaciones se guardan por token con ids secuenciales (AC-0001, OP-0001); los comandos fallidos y ANULA no consumen OP-id.", "evidencia": [4, 5, 195, 222], "confianza": "confirmado"},
+    {"id": "MEM-02", "seccion": 4, "comportamiento": "El saldo refleja depósitos, transferencias y anulaciones; ANULA de un DEPOSITO resta su monto y puede dejar saldo negativo.", "evidencia": [216, 218], "confianza": "confirmado"},
+    {"id": "ERR-01", "seccion": 5, "comportamiento": "Cuenta inexistente o con id mal escrito (minúsculas, sin ceros) responde 404 E401 \"cuenta inexistente\"; comparación exacta.", "evidencia": [16, 190, 191, 192], "confianza": "confirmado"},
+    {"id": "ERR-02", "seccion": 5, "comportamiento": "En TRANSFER el límite (E506) se evalúa antes que el saldo (E507).", "evidencia": [204], "confianza": "probable"},
+    {"id": "ERR-03", "seccion": 5, "comportamiento": "E301 incluye \"sugerencia\" con el comando más cercano (Levenshtein ≤ 2, en mayúsculas); a distancia 3 no hay sugerencia.", "evidencia": [74, 144, 156, 160], "confianza": "confirmado"},
+    {"id": "CAM-01", "seccion": 6, "comportamiento": "A las 12:55 las 20 respuestas de ejemplos.jsonl (versión de la mañana) se reproducen idénticas: no se detectó ningún cambio.", "evidencia": [2, 3, 4, 5, 21], "confianza": "probable"},
+    {"id": "CAM-02", "seccion": 6, "comportamiento": "Se asume que el servicio no vuelve a cambiar hasta las 20:00 salvo lo que detecte el canario.", "evidencia": [], "confianza": "supuesto"},
+    {"id": "RIE-01", "seccion": 7, "comportamiento": "Existe un comando oculto HALT: con argumentos responde 409 E520 sin detener nada; un cliente nuevo no debería poder descubrirlo por la sugerencia de E301. Cierre: no sugerir comandos ocultos.", "evidencia": [100, 165, 166, 167], "confianza": "confirmado"},
+    {"id": "RIE-02", "seccion": 7, "comportamiento": "ANULA permite saldos negativos cuando el destino ya gastó el dinero. Cierre: rechazar la anulación si deja saldo < 0.", "evidencia": [215, 216], "confianza": "confirmado"}
+  ],
+  "bloques": {
+    "3": [
+      {"titulo": "ALTA", "texto": "- **Argumentos:** `ALTA;nombre;control` (1 argumento; cualquier otra aridad es E302).\n- **Efecto:** crea la cuenta `AC-%04d` siguiente con saldo 0.\n- **Respuesta:** `201 {\"cuentaId\":\"AC-0001\"}`. El nombre admite espacios, guiones y no-ASCII (ids 76–78)."},
+      {"titulo": "TRANSFER", "texto": "- **Argumentos:** `TRANSFER;origen;destino;monto;control`.\n- **Efecto:** mueve `monto` de origen a destino y crea una operación `OP-%04d`.\n- **Respuesta:** `200 {\"status\":\"recieved\",\"operacionId\":\"OP-0002\"}` (sic, `recieved`).\n- **Errores:** E303, E304, E401, E506 (monto > 100000), E507 (saldo insuficiente)."}
+    ]
+  }
+}
