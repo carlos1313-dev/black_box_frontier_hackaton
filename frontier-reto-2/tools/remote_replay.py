@@ -1,7 +1,9 @@
 """Reproduce el log contra un reemplazo DESPLEGADO (nunca contra el original).
 
-Uso: python3 -m tools.remote_replay https://mi-reemplazo.onrender.com [ruta_log]
+Uso: python3 -m tools.remote_replay https://mi-reemplazo.onrender.com [ruta_log] [--solo-v2]
 Lee TEAM_TOKEN de .env. Exit code 1 si hay diferencias o algún paso tarda más de 5 s.
+Con --solo-v2 manda solo las secuencias grabadas desde el incidente (el reemplazo implementa la v2;
+las de la mañana difieren a propósito en el límite de TRANSFER y el formato del saldo).
 """
 
 import json
@@ -11,7 +13,7 @@ import urllib.error
 import urllib.request
 
 from tools.harness import _cargar_env
-from tools.replay import LOG_POR_DEFECTO, TOKEN_PROPIO, iguales, leer_log, reconstruir
+from tools.replay import LOG_POR_DEFECTO, TOKEN_PROPIO, iguales, leer_log, reconstruir, version_de
 
 # En el original el token del equipo era inválido (id 29); en el reemplazo es el válido,
 # así que esa línea se reproduce con otro token inválido.
@@ -40,8 +42,16 @@ def enviar(base, metodo, ruta, authorization, cuerpo):
 
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    solo_v2 = "--solo-v2" in argv
+    argv = [a for a in argv if a != "--solo-v2"]
     base = argv[0].rstrip("/")
     lineas = sorted(leer_log(argv[1] if len(argv) > 1 else LOG_POR_DEFECTO), key=lambda l: l["id"])
+    if solo_v2:
+        # Por secuencia completa: la versión la fija su primera línea (el reset), como en tools.replay.
+        version = {}
+        for e in lineas:
+            version.setdefault(e["seq"], version_de(e))
+        lineas = [e for e in lineas if version[e["seq"]] == 2]
     token = _cargar_env()["TEAM_TOKEN"]
     difs, lentos, peor = [], [], 0.0
     for e in lineas:
