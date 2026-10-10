@@ -53,6 +53,10 @@ def _leer_log() -> list[dict]:
     return [json.loads(l) for l in LOG.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+class ErrorRed(Exception):
+    """El request no obtuvo respuesta. Si no era idempotente, el estado del original es incierto."""
+
+
 class Respuesta:
     def __init__(self, linea: dict):
         self.linea = linea
@@ -119,6 +123,13 @@ class Harness:
                     status, hdrs, raw = r.status, r.headers, r.read()
             except urllib.error.HTTPError as e:
                 status, hdrs, raw = e.code, e.headers, e.read()
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                # Solo se reintenta lo idempotente: un /msg perdido pudo haber cambiado el estado.
+                if (metodo, ruta) in (("POST", "/__reset"), ("GET", "/health")) and intento < 4:
+                    print(f"[harness] error de red en {metodo} {ruta} ({e}), reintento {intento + 1}")
+                    time.sleep(2 * (intento + 1))
+                    continue
+                raise ErrorRed(f"{metodo} {ruta}: {e}") from e
             hdrs = {k.lower(): v for k, v in hdrs.items()}
             if hdrs.get("x-frontier-infra") == "rate-limit":
                 print(f"[harness] rate-limit de infraestructura, reintento {intento + 1}")
