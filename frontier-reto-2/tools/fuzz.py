@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from core import Store
 from core.checksum import control, firmar
 from core.commands import COMANDOS
+from tools.harness import ErrorRed
 
 from .comun import Diferencia, HarnessFalso, comparar
 from .replay import TOKEN_PROPIO
@@ -378,8 +379,13 @@ def correr(harness, secuencias: int, semilla: int, max_requests: int, salida=pri
         gen = Generador(rng, store)
         for i in range(largo):
             paso = gen.siguiente(i)
-            r = enviar(seq, paso)
             res.requests += 1
+            try:
+                r = enviar(seq, paso)
+            except ErrorRed as e:
+                # Estado del original incierto: se abandona la secuencia; la siguiente arranca con reset.
+                salida(f"[fuzz] secuencia {n} abandonada por error de red: {e}")
+                break
             res.pasos += 1
             d = comparar(store, r, paso.hipotesis)
             if d is not None:
