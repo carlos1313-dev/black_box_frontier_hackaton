@@ -108,8 +108,11 @@ def _anula(state, args):
 
 
 def _halt(state, args):
-    # SUPUESTO: cualquier valor del argumento da E520 y no cambia nada (166-170).
-    raise ErrorServicio("E520")
+    # Solo "1" confirma (3281, 3292); 0, 2, 01, true, YES, CONFIRMAR... dan E520 sin efecto (3272-3280, 3313-3320).
+    if args[0] != "1":
+        raise ErrorServicio("E520")
+    state.detenido = True
+    raise ErrorServicio("E599")
 
 
 # El orden importa: define el desempate de la sugerencia de E301 (core.parser.sugerencia).

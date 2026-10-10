@@ -138,6 +138,18 @@ class TestHttp(unittest.TestCase):
         cuerpo = ('{"m":"%s"}' % firmar("ALTA;B")).encode()
         self.assertEqual(self.msg(cuerpo)[1], {"cuentaId": "AC-0001"})  # sí reinicia el estado
 
+    def test_halt_confirmado_detiene_hasta_reset(self):
+        e599 = (503, {"error": "E599", "mensaje": "service halted"})
+        self.assertEqual(self.msg(('{"m":"%s"}' % firmar("HALT;0")).encode())[0], 409)
+        self.assertEqual(self.msg(('{"m":"%s"}' % firmar("halt;1")).encode()), e599)
+        for cuerpo in (b'{"m":"PING;64"}', b"no json", b"x" * 9000):
+            self.assertEqual(self.msg(cuerpo), e599)
+        self.assertEqual(self.store.ultimo_x_req, 5)  # detenido sigue contando X-Req
+        self.assertEqual(self.msg(b"no json", auth=None)[0], 401)
+        self.assertEqual(responder(self.store, "GET", "/health", self.auth, None), (200, {"ok": True}))
+        responder(self.store, "POST", "/__reset", self.auth, None)
+        self.assertEqual(self.msg(b'{"m":"PING;64"}'), (200, {"pong": True}))
+
 
 if __name__ == "__main__":
     unittest.main()

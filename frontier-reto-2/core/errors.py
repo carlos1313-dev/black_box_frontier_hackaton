@@ -18,9 +18,10 @@ CATALOGO: dict[str, tuple[int, str]] = {
     "E401": (404, "cuenta inexistente"),
     "E402": (404, "operación inexistente"),  # (219-221)
     "E506": (422, "límite excedido"),
-    # HALT con argumento: no cambia nada (166-170).
+    # HALT con argumento distinto de "1": no cambia nada (166, 3272-3280, 3313-3320).
     "E520": (409, "operación destructiva: detiene el servicio; reenvía con confirmación"),
     "E507": (422, "saldo insuficiente"),
+    "E599": (503, "service halted"),  # servicio detenido por HALT;1 (3281-3306)
 }
 
 
