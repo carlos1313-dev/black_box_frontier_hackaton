@@ -54,6 +54,15 @@ class TestServidor(unittest.TestCase):
         )
         self.assertEqual(self.pedir("PUT", "/msg", "{}")[0], 404)
 
+    def test_doble_barra_es_ruta_desconocida(self):
+        # http.server colapsa "//msg" a "/msg"; el original da E404 (id 925).
+        status, _, cuerpo = self.pedir("POST", "//msg", '{"m": "PING;64"}')
+        self.assertEqual((status, cuerpo["error"]), (404, "E404"))
+
+    def test_query_string_se_ignora(self):
+        status, _, cuerpo = self.pedir("POST", "/msg?x=1", '{"m": "PING;64"}')
+        self.assertEqual((status, cuerpo), (200, {"pong": True}))
+
     def test_cuerpo_no_json(self):
         self.assertEqual(
             self.pedir("POST", "/msg", "esto no es json")[::2],
