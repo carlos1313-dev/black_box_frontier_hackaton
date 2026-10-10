@@ -1,4 +1,4 @@
-"""Reproductor: log JSONL -> core -> diff -> % de conformidad.
+"""Reproductor: log JSONL -> core.http.responder -> diff -> % de conformidad.
 
 Uso: python3 -m tools.replay [ruta_log]   (por defecto experimentos.jsonl)
 Exit code 1 si hay diferencias.
@@ -9,7 +9,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from core import State, handle
+from core import Store, responder
 
 RAIZ = Path(__file__).resolve().parent.parent
 LOG_POR_DEFECTO = RAIZ / "experimentos.jsonl"
@@ -17,9 +17,8 @@ LOG_POR_DEFECTO = RAIZ / "experimentos.jsonl"
 
 @dataclass
 class Resultado:
-    total: int = 0  # líneas comparadas contra el core
+    total: int = 0  # líneas comparadas
     ok: int = 0
-    fuera_de_core: int = 0
     ignoradas: int = 0
     diferencias: list = field(default_factory=list)
 
@@ -68,17 +67,28 @@ def leer_log(ruta) -> list[dict]:
     return lineas
 
 
-def es_de_core(entrada: dict) -> bool:
-    metodo = entrada.get("metodo")
-    ruta = entrada.get("ruta")
-    if metodo is not None and metodo != "POST":
-        return False
-    if ruta is not None and ruta != "/msg":
-        return False
-    if "auth" in entrada:
-        return False
-    req = entrada.get("request")
-    return isinstance(req, dict) and "m" in req
+TOKEN_PROPIO = "<token-propio>"
+
+
+def reconstruir(e: dict) -> tuple[str, str, str | None, bytes | None]:
+    """Línea del log -> (metodo, ruta, authorization, cuerpo) para `responder`."""
+    metodo = e.get("metodo") or "POST"
+    ruta = e.get("ruta") or "/msg"
+    auth = e.get("auth")
+    if auth is None:
+        authorization = "Bearer " + TOKEN_PROPIO
+    elif auth == "ninguno":
+        authorization = None
+    else:
+        authorization = auth  # ya trae los alias <token-propio> / <token-equipo>
+    req = e.get("request")
+    if e.get("raw") is True:
+        cuerpo = req.encode("utf-8") if isinstance(req, str) else b""
+    elif req is None:
+        cuerpo = None
+    else:
+        cuerpo = json.dumps(req).encode("utf-8")
+    return metodo, ruta, authorization, cuerpo
 
 
 def replay(lineas: list[dict]) -> Resultado:
@@ -88,20 +98,12 @@ def replay(lineas: list[dict]) -> Resultado:
         secuencias.setdefault(e.get("seq"), []).append(e)
 
     for seq, entradas in secuencias.items():
-        state = State()
+        store = Store(TOKEN_PROPIO)  # cada seq empieza con estado nuevo
         for e in entradas:
             if str(e.get("conclusion") or "").startswith("INFRA"):
                 res.ignoradas += 1
                 continue
-            if e.get("ruta") == "/__reset":
-                # El core no responde a reset; solo reinicia el estado.
-                state = State()
-                res.fuera_de_core += 1
-                continue
-            if not es_de_core(e):
-                res.fuera_de_core += 1
-                continue
-            status, cuerpo = handle(state, e["request"]["m"])
+            status, cuerpo = responder(store, *reconstruir(e))
             res.total += 1
             if status == e["status"] and iguales(e["response"], cuerpo):
                 res.ok += 1
@@ -115,12 +117,12 @@ def main(argv=None) -> int:
     ruta = Path(argv[0]) if argv else LOG_POR_DEFECTO
     res = replay(leer_log(ruta))
     for e, seq, status, cuerpo in res.diferencias:
-        print(f"DIFF id={e.get('id')} seq={seq}")
-        print(f"  request:  {json.dumps(e['request'], ensure_ascii=False)}")
+        print(f"DIFF id={e.get('id')} seq={seq} {e.get('metodo') or 'POST'} {e.get('ruta') or '/msg'}")
+        print(f"  request:  {json.dumps(e.get('request'), ensure_ascii=False)}")
         print(f"  esperado: {e['status']} {json.dumps(e['response'], ensure_ascii=False)}")
         print(f"  obtenido: {status} {json.dumps(cuerpo, ensure_ascii=False)}")
     print(f"conformidad: {res.ok}/{res.total} ({res.porcentaje:.1f}%)")
-    print(f"fuera de core: {res.fuera_de_core} | ignoradas (INFRA): {res.ignoradas}")
+    print(f"ignoradas (INFRA): {res.ignoradas}")
     return 1 if res.diferencias else 0
 
 

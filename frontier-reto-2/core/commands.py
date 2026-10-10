@@ -23,6 +23,7 @@ OK_RECIBIDO = "recieved"  # sic, error ortográfico del original
 class Comando:
     aridad: int
     ejecutar: Callable[[State, list[str]], tuple[int, dict]]
+    valida_control: bool = True  # PING no valida el control (ids 61-67)
 
 
 def _monto(texto: str) -> int:
@@ -45,7 +46,7 @@ def _ping(state, args):
 
 
 def _alta(state, args):
-    # SUPUESTO: cualquier nombre (incluso vacío o repetido) es válido.
+    # SUPUESTO: cualquier nombre no vacío (repetido incluido) es válido; espacios, guion y no-ASCII (76-78) y 3000 caracteres (83) pasan.
     return 201, {"cuentaId": state.nueva_cuenta(args[0])}
 
 
@@ -105,7 +106,7 @@ def _anula(state, args):
 
 
 COMANDOS: dict[str, Comando] = {
-    "PING": Comando(0, _ping),
+    "PING": Comando(0, _ping, valida_control=False),
     "ALTA": Comando(1, _alta),
     "CONSULTA": Comando(1, _consulta),
     "DEPOSITO": Comando(2, _deposito),
@@ -117,8 +118,8 @@ COMANDOS: dict[str, Comando] = {
 def handle(state: State, m) -> tuple[int, dict | str]:
     """Procesa el valor del campo `m` y devuelve (status, cuerpo)."""
     if not isinstance(m, str):
-        # SUPUESTO: m no string -> E201 (el adaptador HTTP lo afinará).
-        return ErrorServicio("E201").respuesta()
+        # m no string -> E102 (ids 45, 46, 48); core.http ya lo filtra antes.
+        return ErrorServicio("E102").respuesta()
     try:
         msg = parser.separar(m)
         parser.validar(msg, COMANDOS)
